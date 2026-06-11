@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DASU Karriere-Tourenplaner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ============================================================
+       DESIGN TOKENS
+    ============================================================ */
+    :root {
+      --color-primary:        #0000f5;
+      --color-primary-dark:   #0a00ff;
+      --color-primary-light:  #8080fa;
+      --color-primary-xlight: #f5f5ff;
+
+      --color-accent-green:   #78be73;
+      --color-accent-pink:    #f55f82;
+      --color-accent-teal:    #287579;
+      --color-accent-mint:    #8cc8af;
+
+      --color-bg:             #030018;
+      --color-surface-1:      #0a0030;
+      --color-surface-2:      #10005a;
+      --color-border:         rgba(128, 128, 250, 0.25);
+      --color-border-bright:  rgba(128, 128, 250, 0.6);
+
+      --color-text-primary:   #f5f5ff;
+      --color-text-secondary: rgba(245, 245, 255, 0.65);
+      --color-text-muted:     rgba(245, 245, 255, 0.35);
+
+      --font-display:         'Space Grotesk', sans-serif;
+      --font-body:            'Inter', sans-serif;
+      --font-mono:            'Courier New', monospace;
+
+      --space-xs:   4px;
+      --space-sm:   8px;
+      --space-md:   16px;
+      --space-lg:   24px;
+      --space-xl:   40px;
+      --space-2xl:  64px;
+      --space-3xl:  96px;
+
+      --radius-sm:  6px;
+      --radius-md:  12px;
+      --radius-lg:  20px;
+      --radius-full: 9999px;
+
+      --transition-fast:   150ms ease;
+      --transition-normal: 300ms ease;
+      --transition-slow:   600ms cubic-bezier(0.16, 1, 0.3, 1);
+
+      /* Map / Data-Panel */
+      --color-cyan:        #00c8e0;
+      --color-cyan-dim:    rgba(0, 200, 224, 0.15);
+      --color-map-bg:      #060e11;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-body);
+      background-color: var(--color-bg);
+      color: var(--color-text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    .visually-hidden {
+      position: absolute; width: 1px; height: 1px;
+      overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap;
+    }
+
+    .screen { display: none; min-height: 100vh; width: 100%; }
+    .screen.active {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+
+    /* ============================================================
+       BACKGROUND
+    ============================================================ */
+    .bg-grid {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image:
+        linear-gradient(rgba(128,128,250,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(128,128,250,0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    .bg-glow {
+      position: fixed; border-radius: 50%;
+      filter: blur(120px); pointer-events: none; z-index: 0;
+    }
+    .bg-glow--blue {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(0,0,245,0.18) 0%, transparent 70%);
+      top: -200px; left: -100px;
+      animation: glow-drift 12s ease-in-out infinite alternate;
+    }
+    .bg-glow--pink {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(245,95,130,0.12) 0%, transparent 70%);
+      bottom: -100px; right: -50px;
+      animation: glow-drift 16s ease-in-out infinite alternate-reverse;
+    }
+    @keyframes glow-drift {
+      from { transform: translate(0, 0); }
+      to   { transform: translate(40px, 40px); }
+    }
+
+    /* ============================================================
+       LOADING SCREEN
+    ============================================================ */
+    #screen-loading {
+      position: relative; z-index: 1;
+      text-align: center; padding: var(--space-xl);
+    }
+    .loading__logo {
+      font-family: var(--font-display); font-size: 13px; font-weight: 600;
+      letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--color-primary-light); margin-bottom: var(--space-2xl);
+    }
+    .loading__title {
+      font-family: var(--font-display);
+      font-size: clamp(28px, 5vw, 44px); font-weight: 700;
+      line-height: 1.1; margin-bottom: var(--space-md);
+    }
+    .loading__title span { color: var(--color-primary); }
+    .loading__subtitle {
+      font-size: 15px; color: var(--color-text-secondary);
+      margin-bottom: var(--space-2xl); font-weight: 300;
+    }
+    .loading__console {
+      width: min(480px, 100%);
+      background: var(--color-surface-1);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-md) var(--space-lg);
+      font-family: var(--font-mono); font-size: 12px;
+      text-align: left; margin: 0 auto var(--space-xl); min-height: 100px;
+    }
+    .console-line { color: var(--color-text-secondary); line-height: 2; opacity: 0; animation: console-appear 0.2s ease forwards; }
+    .console-line--success   { color: var(--color-accent-green); }
+    .console-line--highlight { color: var(--color-primary-light); }
+    @keyframes console-appear {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .loading__progress-bar {
+      width: min(400px, 100%); height: 3px;
+      background: var(--color-surface-2); border-radius: var(--radius-full);
+      margin: 0 auto; overflow: hidden;
+    }
+    .loading__progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
+      border-radius: var(--radius-full); width: 0%; transition: width 200ms ease;
+    }
+
+    /* ============================================================
+       INTRO SCREEN
+    ============================================================ */
+    #screen-intro {
+      position: relative; z-index: 1; padding: var(--space-xl);
+      text-align: center; max-width: 680px; margin: 0 auto;
+    }
+    .intro__badge {
+      display: inline-flex; align-items: center; gap: var(--space-sm);
+      background: rgba(0,0,245,0.15); border: 1px solid rgba(0,0,245,0.4);
+      border-radius: var(--radius-full); padding: var(--space-xs) var(--space-md);
+      font-size: 12px; font-weight: 600; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--color-primary-light);
+      margin-bottom: var(--space-xl);
+    }
+    .intro__badge-dot {
+      width: 6px; height: 6px; background: var(--color-accent-green);
+      border-radius: 50%; animation: pulse 2s ease infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.5; transform: scale(0.85); }
+    }
+    .intro__heading {
+      font-family: var(--font-display);
+      font-size: clamp(32px, 6vw, 52px); font-weight: 700;
+      line-height: 1.05; margin-bottom: var(--space-lg); letter-spacing: -0.02em;
+    }
+    .intro__heading em { font-style: normal; color: var(--color-accent-pink); }
+    .intro__description {
+      font-size: 16px; color: var(--color-text-secondary);
+      line-height: 1.8; margin-bottom: var(--space-xl); font-weight: 400;
+    }
+    .intro__stats {
+      display: flex; gap: var(--space-lg); justify-content: center;
+      margin-bottom: var(--space-xl); flex-wrap: wrap;
+    }
+    .stat-card {
+      background: var(--color-surface-1); border: 1px solid var(--color-border);
+      border-radius: var(--radius-md); padding: var(--space-md) var(--space-lg); min-width: 140px;
+    }
+    .stat-card__value {
+      font-family: var(--font-display); font-size: 28px; font-weight: 700;
+      color: var(--color-primary-light); line-height: 1; margin-bottom: var(--space-xs);
+    }
+    .stat-card__label {
+      font-size: 11px; font-weight: 500; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--color-text-muted);
+    }
+
+    /* ============================================================
+       TOUR SCREEN
+    ============================================================ */
+    #screen-tour {
+      position: relative; z-index: 1; padding: var(--space-lg);
+      width: 100%; max-width: 880px; margin: 0 auto;
+      align-items: flex-start !important;
+      padding-top: var(--space-2xl); padding-bottom: var(--space-2xl);
+    }
+    .tour__header {
+      width: 100%; display: flex; align-items: center;
+      justify-content: space-between; margin-bottom: var(--space-xl);
+      flex-wrap: wrap; gap: var(--space-md);
+    }
+    .tour__label {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--color-primary-light);
+      margin-bottom: var(--space-xs);
+    }
+    .tour__title {
+      font-family: var(--font-display);
+      font-size: clamp(22px, 4vw, 32px); font-weight: 700; letter-spacing: -0.01em;
+    }
+    .tour__progress-info { text-align: right; }
+    .tour__stop-counter {
+      font-family: var(--font-display); font-size: 36px; font-weight: 700;
+      color: var(--color-primary-light); line-height: 1;
+    }
+    .tour__stop-counter span { font-size: 16px; color: var(--color-text-muted); font-weight: 400; }
+
+    /* ============================================================
+       MAP CANVAS
+    ============================================================ */
+    .route-map {
+      width: 100%;
+      height: 200px;
+      background: var(--color-map-bg);
+      border: 1px solid rgba(0, 200, 224, 0.2);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-lg);
+      position: relative;
+      overflow: hidden;
+    }
+    .map-canvas {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%; display: block;
+    }
+    .map-label {
+      position: absolute; top: 10px; right: 14px;
+      font-size: 10px; color: rgba(0, 200, 224, 0.4);
+      letter-spacing: 0.1em; text-transform: uppercase;
+      font-family: var(--font-mono); z-index: 3; pointer-events: none;
+    }
+    .route-track-overlay {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      padding: 10px 16px 12px;
+      background: linear-gradient(to top, rgba(6,14,17,0.92) 0%, transparent 100%);
+      z-index: 2;
+    }
+    .route-track {
+      display: flex; align-items: center;
+      gap: 0; overflow-x: auto;
+      scrollbar-width: none; -ms-overflow-style: none;
+    }
+    .route-track::-webkit-scrollbar { display: none; }
+
+    .route-stop {
+      display: flex; flex-direction: column; align-items: center;
+      flex-shrink: 0; position: relative; cursor: default;
+    }
+    .route-stop__dot {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 1px solid rgba(0, 200, 224, 0.3);
+      background: rgba(6,14,17,0.8);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; font-family: var(--font-mono);
+      color: rgba(0, 200, 224, 0.5);
+      transition: var(--transition-normal); position: relative; z-index: 2;
+    }
+    .route-stop.visited .route-stop__dot {
+      background: rgba(120, 190, 115, 0.2);
+      border-color: var(--color-accent-green);
+      color: var(--color-accent-green);
+    }
+    .route-stop.current .route-stop__dot {
+      background: rgba(255, 220, 60, 0.15);
+      border-color: #ffdc3c;
+      color: #ffdc3c;
+      box-shadow: 0 0 0 3px rgba(255, 220, 60, 0.2), 0 0 16px rgba(255, 220, 60, 0.4);
+      animation: current-pulse 2s ease infinite;
+    }
+    @keyframes current-pulse {
+      0%, 100% { box-shadow: 0 0 0 3px rgba(255,220,60,0.2), 0 0 16px rgba(255,220,60,0.4); }
+      50%       { box-shadow: 0 0 0 6px rgba(255,220,60,0.1), 0 0 24px rgba(255,220,60,0.5); }
+    }
+    .route-connector {
+      flex: 1; min-width: 24px; height: 1px;
+      background: rgba(0, 200, 224, 0.15);
+      position: relative; transition: var(--transition-slow);
+    }
+    .route-connector.completed { background: rgba(120, 190, 115, 0.5); }
+    .route-connector.active    { background: linear-gradient(90deg, #ffdc3c 0%, rgba(0,200,224,0.2) 100%); }
+
+    /* ============================================================
+       DATA PANEL — Tour-Planner Style
+    ============================================================ */
+    .data-panel {
+      width: 100%;
+      background: var(--color-map-bg);
+      border: 1px solid rgba(0, 200, 224, 0.22);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: var(--space-lg);
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+    .data-panel__header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 14px;
+      background: rgba(0, 200, 224, 0.06);
+      border-bottom: 1px solid rgba(0, 200, 224, 0.18);
+    }
+    .data-panel__header-left { display: flex; align-items: center; gap: 8px; }
+    .data-panel__diamond { color: var(--color-cyan); font-size: 10px; }
+    .data-panel__section-name {
+      font-family: var(--font-display); font-size: 13px;
+      color: var(--color-text-secondary); letter-spacing: 0.04em;
+    }
+    .data-panel__tour-id {
+      font-family: var(--font-display); font-weight: 700;
+      font-size: 13px; color: var(--color-text-primary);
+    }
+    .data-panel__row {
+      display: grid; grid-template-columns: 100px 1fr;
+      border-bottom: 1px solid rgba(0, 200, 224, 0.07);
+    }
+    .data-panel__row:last-child { border-bottom: none; }
+    .data-panel__key {
+      padding: 10px 14px;
+      color: rgba(0, 200, 224, 0.5);
+      border-right: 1px solid rgba(0, 200, 224, 0.07);
+      background: rgba(0, 0, 0, 0.2);
+      font-style: italic; font-size: 11px;
+      line-height: 1.5; word-break: break-all;
+    }
+    .data-panel__value {
+      padding: 10px 14px;
+      color: var(--color-text-secondary);
+      line-height: 1.75;
+    }
+
+    /* Data panel inner elements */
+    .dp-tour-meta {
+      display: block; font-size: 11px;
+      color: rgba(245, 245, 255, 0.7); margin-bottom: 3px;
+    }
+    .dp-title {
+      display: block; font-family: var(--font-display); font-size: 14px;
+      font-weight: 700; color: var(--color-text-primary);
+      font-style: normal; margin-bottom: 7px;
+    }
+    .dp-step { display: block; font-size: 11px; margin-bottom: 2px; }
+    .dp-step-num { color: var(--color-cyan); font-weight: 700; }
+    .dp-step-paren { color: rgba(245, 245, 255, 0.85); }
+    .dp-tags { display: block; margin-top: 8px; }
+    .dp-tag {
+      display: inline-block;
+      background: rgba(0, 200, 224, 0.1);
+      border: 1px solid rgba(0, 200, 224, 0.25);
+      color: var(--color-cyan); border-radius: 3px;
+      padding: 1px 7px; font-size: 10px;
+      margin-right: 4px; margin-bottom: 3px;
+      letter-spacing: 0.05em; text-transform: uppercase;
+    }
+    .dp-tag--green  { background: rgba(120,190,115,0.1); border-color: rgba(120,190,115,0.3); color: var(--color-accent-green); }
+    .dp-tag--pink   { background: rgba(245,95,130,0.1);  border-color: rgba(245,95,130,0.3);  color: var(--color-accent-pink); }
+    .dp-tag--teal   { background: rgba(40,117,121,0.12); border-color: rgba(140,200,175,0.3); color: var(--color-accent-mint); }
+    .dp-funfact     { font-style: italic; font-size: 11px; color: var(--color-text-muted); }
+    .dp-date        { font-size: 12px; color: var(--color-text-primary); letter-spacing: 0.06em; }
+
+    /* ============================================================
+       REVEAL SCREEN
+    ============================================================ */
+    #screen-reveal {
+      position: relative; z-index: 1;
+      text-align: center; padding: var(--space-xl);
+      max-width: 600px; margin: 0 auto;
+    }
+    .reveal__fireworks {
+      font-size: 48px; margin-bottom: var(--space-lg);
+      animation: bounce-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+    @keyframes bounce-in {
+      from { opacity: 0; transform: scale(0.3); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .reveal__heading {
+      font-family: var(--font-display);
+      font-size: clamp(28px, 5vw, 44px); font-weight: 700;
+      line-height: 1.1; letter-spacing: -0.02em; margin-bottom: var(--space-md);
+    }
+    .reveal__subheading {
+      font-size: 16px; color: var(--color-text-secondary);
+      margin-bottom: var(--space-2xl); line-height: 1.7;
+    }
+    .voucher {
+      background: var(--color-surface-1);
+      border: 1px solid var(--color-border-bright);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl); margin-bottom: var(--space-xl);
+      position: relative; overflow: hidden;
+    }
+    .voucher::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg,
+        var(--color-primary), var(--color-accent-pink),
+        var(--color-accent-green), var(--color-primary-light));
+    }
+    .voucher__label {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--color-text-muted); margin-bottom: var(--space-sm);
+    }
+    .voucher__code {
+      font-family: var(--font-display);
+      font-size: clamp(24px, 5vw, 40px); font-weight: 700;
+      letter-spacing: 0.12em;
+      background: linear-gradient(135deg, var(--color-primary-light), var(--color-accent-green));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: var(--space-sm);
+    }
+    .voucher__copy-btn {
+      background: none; border: 1px solid var(--color-border);
+      color: var(--color-text-secondary); font-size: 12px;
+      font-family: var(--font-body); padding: 6px 14px;
+      border-radius: var(--radius-full); cursor: pointer;
+      transition: var(--transition-fast);
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .voucher__copy-btn:hover { border-color: var(--color-primary-light); color: var(--color-primary-light); }
+    .voucher__copy-btn.copied { border-color: var(--color-accent-green); color: var(--color-accent-green); }
+    .voucher__details { font-size: 13px; color: var(--color-text-muted); margin-top: var(--space-md); font-style: italic; }
+    .reveal__signature { font-size: 14px; color: var(--color-text-secondary); line-height: 1.8; }
+    .reveal__signature strong { color: var(--color-text-primary); font-family: var(--font-display); }
+
+    /* ============================================================
+       BUTTONS
+    ============================================================ */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-sm); padding: 14px 32px; border-radius: var(--radius-full);
+      font-family: var(--font-display); font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: var(--transition-fast);
+      border: none; text-decoration: none; letter-spacing: 0.01em; white-space: nowrap;
+    }
+    .btn--primary {
+      background: var(--color-primary); color: white;
+      box-shadow: 0 4px 24px rgba(0,0,245,0.35);
+    }
+    .btn--primary:hover {
+      background: var(--color-primary-dark);
+      box-shadow: 0 6px 32px rgba(0,0,245,0.5); transform: translateY(-1px);
+    }
+    .btn--primary:active { transform: translateY(0); }
+    .btn--secondary {
+      background: transparent;
+      border: 1px solid var(--color-border-bright);
+      color: var(--color-text-secondary);
+    }
+    .btn--secondary:hover { border-color: var(--color-primary-light); color: var(--color-text-primary); }
+    .btn--pink {
+      background: var(--color-accent-pink); color: white;
+      box-shadow: 0 4px 24px rgba(245,95,130,0.35);
+    }
+    .btn--pink:hover {
+      background: #d94570;
+      box-shadow: 0 6px 32px rgba(245,95,130,0.5); transform: translateY(-1px);
+    }
+    .btn-group { display: flex; gap: var(--space-md); justify-content: center; flex-wrap: wrap; }
+
+    /* ============================================================
+       ENTRY ANIMATIONS
+    ============================================================ */
+    .fade-in { animation: fade-in 0.5s ease both; }
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+    .delay-4 { animation-delay: 0.4s; }
+    .delay-5 { animation-delay: 0.5s; }
+
+    /* ============================================================
+       MILESTONE SPECIAL EFFECTS
+    ============================================================ */
+    .milestone-special {
+      width: 100%; margin-bottom: var(--space-lg); position: relative;
+      min-height: 280px; border-radius: var(--radius-lg);
+      background: var(--color-map-bg);
+      border: 1px solid rgba(0, 200, 224, 0.22);
+      overflow: hidden;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .milestone-special.hidden { display: none; }
+    
+    .rain-container {
+      position: absolute; inset: 0; overflow: hidden;
+      width: 100%; height: 100%;
+    }
+    
+    .rain-logo {
+      position: absolute;
+      width: 60px; height: 60px;
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    
+    .rain-logo img {
+      width: 100%; height: 100%; object-fit: contain;
+    }
+    
+    @keyframes rain-fall {
+      from {
+        transform: translateY(-100px);
+        opacity: 0.7;
+      }
+      to {
+        transform: translateY(300px);
+        opacity: 0;
+      }
+    }
+    
+    @keyframes rain-fall-rotate {
+      from {
+        transform: translateY(-100px) rotate(0deg);
+        opacity: 0.7;
+      }
+      to {
+        transform: translateY(300px) rotate(360deg);
+        opacity: 0;
+      }
+    }
+    
+    @keyframes rain-fall-rotate-rev {
+      from {
+        transform: translateY(-100px) rotate(0deg);
+        opacity: 0.7;
+      }
+      to {
+        transform: translateY(300px) rotate(-360deg);
+        opacity: 0;
+      }
+    }
+    
+    .rain-logo.rotating { animation: rain-fall-rotate 3s linear infinite; }
+    .rain-logo.rotating-rev { animation: rain-fall-rotate-rev 3.5s linear infinite; }
+    .rain-logo.normal { animation: rain-fall 2.8s linear infinite; }
+    
+    .milestone-special__content {
+      position: relative; z-index: 2; text-align: center;
+      background: rgba(6, 14, 17, 0.85);
+      padding: var(--space-lg); border-radius: var(--radius-md);
+      backdrop-filter: blur(8px);
+    }
+    
+    .btn--apply {
+      background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+      color: white;
+      box-shadow: 0 4px 24px rgba(0,0,245,0.35);
+      text-decoration: none;
+      display: inline-flex;
+    }
+    
+    .btn--apply:hover {
+      background: var(--color-primary-dark);
+      box-shadow: 0 6px 32px rgba(0,0,245,0.5);
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 600px) {
+      .intro__stats { gap: var(--space-sm); }
+      .stat-card { min-width: 100px; padding: var(--space-md); }
+      .tour__header { flex-direction: column; align-items: flex-start; }
+      .tour__progress-info { text-align: left; }
+      .data-panel__row { grid-template-columns: 80px 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--color-bg); }
+    ::-webkit-scrollbar-thumb { background: var(--color-surface-2); border-radius: 3px; }
+  </style>
+</head>
+
+<body>
+
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--blue" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--pink" aria-hidden="true"></div>
+
+  <!-- SCREEN 1: LOADING -->
+  <section id="screen-loading" class="screen active" role="main" aria-label="System wird gestartet">
+    <div class="loading__logo">DASU · Tourenplanung v2.0</div>
+    <h1 class="loading__title">Optimale Route<br>wird berechnet <span>&#x2026;</span></h1>
+    <p class="loading__subtitle">Karriere-Daten werden analysiert</p>
+    <div class="loading__console" id="loading-console" role="log" aria-live="polite"></div>
+    <div class="loading__progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-bar-wrapper">
+      <div class="loading__progress-fill" id="progress-fill"></div>
+    </div>
+  </section>
+
+  <!-- SCREEN 2: INTRO -->
+  <section id="screen-intro" class="screen" role="main" aria-label="Willkommen">
+    <div class="intro__badge fade-in">
+      <span class="intro__badge-dot" aria-hidden="true"></span>
+      Route optimiert · Bereit zur Abfahrt
+    </div>
+    <h1 class="intro__heading fade-in delay-1">
+      Die Karriere-Tour<br>
+      <em id="employee-name-heading">von [Name]</em>
+    </h1>
+    <p class="intro__description fade-in delay-2" id="intro-description"></p>
+    <div class="intro__stats fade-in delay-3">
+      <div class="stat-card">
+        <div class="stat-card__value" id="stat-stops"></div>
+        <div class="stat-card__label">Stationen</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__value" id="stat-years"></div>
+        <div class="stat-card__label">am DASU</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__value" id="stat-projects"></div>
+        <div class="stat-card__label">Meilensteine</div>
+      </div>
+    </div>
+    <div class="btn-group fade-in delay-4">
+      <button class="btn btn--primary" id="btn-start-tour">🚛 Tour starten</button>
+    </div>
+  </section>
+
+  <!-- SCREEN 3: TOUR -->
+  <section id="screen-tour" class="screen" role="main" aria-label="Karriere-Tour">
+
+    <div class="tour__header">
+      <div class="tour__header-left">
+        <div class="tour__label">DASU Karriere-Tourenplaner</div>
+        <h2 class="tour__title" id="tour-section-title"></h2>
+      </div>
+      <div class="tour__progress-info">
+        <div class="tour__stop-counter">
+          <span id="current-stop-num">1</span>
+          <span> / <span id="total-stop-num">?</span></span>
+        </div>
+        <div style="font-size:12px; color: var(--color-text-muted); margin-top:4px;">Stationen</div>
+      </div>
+    </div>
+
+    <!-- Map canvas -->
+    <div class="route-map" id="route-map-container">
+      <canvas id="map-canvas" class="map-canvas"></canvas>
+      <div class="map-label">🗺 Karriere-Route · DASU Logistics</div>
+      <div class="route-track-overlay">
+        <div class="route-track" id="route-track" role="list" aria-label="Routenübersicht"></div>
+      </div>
+    </div>
+
+    <!-- Data Panel (Tour-Planner Style) -->
+    <div class="data-panel" id="milestone-card">
+      <div class="data-panel__header">
+        <div class="data-panel__header-left">
+          <span class="data-panel__diamond">♦</span>
+          <span class="data-panel__section-name">Meilensteine</span>
+        </div>
+        <span class="data-panel__tour-id">Tour <span id="dp-tour-num">1</span></span>
+      </div>
+      <div class="data-panel__row">
+        <div class="data-panel__key">tour_id</div>
+        <div class="data-panel__value" id="dp-tour-id-val"></div>
+      </div>
+      <div class="data-panel__row">
+        <div class="data-panel__key">tour_info</div>
+        <div class="data-panel__value" id="dp-tour-info"></div>
+      </div>
+      <div class="data-panel__row" id="dp-row-funfact">
+        <div class="data-panel__key">fun_fact</div>
+        <div class="data-panel__value">
+          <span class="dp-funfact" id="dp-funfact-val"></span>
+        </div>
+      </div>
+      <div class="data-panel__row">
+        <div class="data-panel__key">tour_date</div>
+        <div class="data-panel__value">
+          <span class="dp-date" id="dp-date-val"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Milestone Special Effects -->
+    <div id="milestone-special" class="milestone-special hidden">
+      <div class="rain-container" id="rain-container"></div>
+      <div class="milestone-special__content">
+        <a href="data/KI-Experte _ AI Solution Architect (m_w_d) _ ABM-Mess Service GmbH _ 350.pdf" 
+           class="btn btn--apply" target="_blank" rel="noopener noreferrer" 
+           aria-label="Zur ABM-Bewerbung">
+          💼 Zur Bewerbung
+        </a>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="btn-group">
+      <button class="btn btn--secondary" id="btn-prev" aria-label="Vorherige Station">← Zurück</button>
+      <button class="btn btn--primary"   id="btn-next" aria-label="Nächste Station">Weiter →</button>
+    </div>
+
+  </section>
+
+  <!-- SCREEN 4: REVEAL -->
+  <section id="screen-reveal" class="screen" role="main" aria-label="Abschluss und Gutschein">
+    <div class="reveal__fireworks fade-in" id="reveal-emoji" aria-hidden="true">🎉🚛🎉</div>
+    <h1 class="reveal__heading fade-in delay-1" id="reveal-heading">Tour abgeschlossen!</h1>
+    <p class="reveal__subheading fade-in delay-2" id="reveal-subheading"></p>
+    <div class="voucher fade-in delay-3">
+      <div class="voucher__label">Dein persönlicher Gutscheincode</div>
+      <div class="voucher__code" id="voucher-code"></div>
+      <button class="voucher__copy-btn" id="btn-copy-voucher" aria-label="Code kopieren">
+        <span id="copy-icon">📋</span>
+        <span id="copy-label">Code kopieren</span>
+      </button>
+      <div class="voucher__details" id="voucher-details"></div>
+    </div>
+    <p class="reveal__signature fade-in delay-4" id="reveal-signature"></p>
+    <div class="btn-group fade-in delay-5" style="margin-top:var(--space-xl);">
+      <button class="btn btn--secondary" id="btn-restart">🔄 Tour neu starten</button>
+    </div>
+  </section>
+
+
+  <script>
+    /**
+     * ================================================================
+     * DASU FAREWELL TOUR PLANNER
+     * ================================================================
+     *
+     * KONFIGURATIONSANLEITUNG FÜR KOLLEGEN
+     * ─────────────────────────────────────
+     * Ändert nur den Bereich zwischen ===KONFIG START=== und
+     * ===KONFIG ENDE===.
+     *
+     * Tag-Farben: "primary" → Cyan | "green" → Grün |
+     *             "pink" → Pink    | "teal"  → Türkis
+     * ================================================================
+     */
+
+    // ===KONFIG START===
+
+    const CONFIG = {
+
+      employeeName: "Joachim Hegenauer",
+
+      introDescription:
+        "In den folgenden Stationen erwartet dich eine Zusammenfassung einer " +
+        "unvergesslichen Reise am DASU — voll mit Ideen, Code, Kaffee und dem Willen, " +
+        "Touren ein für alle Mal smarter zu machen.",
+
+      yearsAtDasu: "3 Jahre 4 Monate",
+      projectCount: "3",
+      voucherCode: "FAREWELL-DASU-2025",
+      voucherDetails: "Bitte bei Röstschmiede Neu-Ulm einlösen. Gültig bis 31.12.2026.",
+
+      revealSubheading:
+        "Du hast jede Station dieser Route mitgeprägt und hinterlässt große Fußspuren " +
+        "— sowohl im Code als auch im Team. Danke für alles, was du aufgebaut hast.",
+
+      revealSignature: "Mit bestem Dank und besten Wünschen — dein DASU-Team 💙",
+
+      milestones: [
+       {
+          year: "2019",
+          title: "[MEILENSTEIN EINTRAGEN]",
+          icon: "📦",
+          description:
+            "Hier steht die Beschreibung des zweiten Meilensteins. Eure Kollegen können " +
+            "diesen Eintrag durch eine echte Station aus seiner Karriere ersetzen. " +
+            "Denkt an konkrete Projekte, lustige Anekdoten oder besondere Momente.",
+          tags: [
+            { text: "Euer Tag",   style: "teal"    },
+            { text: "Projekt XY", style: "primary" },
+          ],
+          funFact: "Hier könnt ihr einen witzigen Fun Fact oder eine Insider-Anekdote eintragen."
+        },
+        {
+          year: "2019",
+          title: "[MEILENSTEIN EINTRAGEN]",
+          icon: "📦",
+          description:
+            "Hier steht die Beschreibung des zweiten Meilensteins. Eure Kollegen können " +
+            "diesen Eintrag durch eine echte Station aus seiner Karriere ersetzen. " +
+            "Denkt an konkrete Projekte, lustige Anekdoten oder besondere Momente.",
+          tags: [
+            { text: "Euer Tag",   style: "teal"    },
+            { text: "Projekt XY", style: "primary" },
+          ],
+          funFact: "Hier könnt ihr einen witzigen Fun Fact oder eine Insider-Anekdote eintragen."
+        },
+        {
+          year: "2024–2026",
+          title: "Tourenplanung — A new player enters the game",
+          icon: "🗺",
+          description:
+            "Wer hätte gedacht, was aus dem viel zu günstigen Workshop vom 27,03,2024 mal wird, bei dem nicht mal die Anfahrt berechnet wurde. " +
+            "Gefolgt von einem echten Angebot am 10,07,2024 konnte dann mit dem Projekt gestartet werden. " +
+            "Der Kick Off Termin erfolgte am 23,09,2024. " +
+            "Insgesamt wurden 8 Meilensteine verkauft, von denen schlussendlich 78013 umgesetzt wurden.",
+          tags: [
+            { text: "Routing Engine",    style: "primary" },
+            { text: "Algorithmus",       style: "green"   },
+            { text: "Production Launch", style: "pink"    },
+            { text: "Kundenprojekt",     style: "teal"    },
+          ],
+          funFact:
+            "TBD"
+        },
+        {
+          year: "2019",
+          title: "[MEILENSTEIN EINTRAGEN]",
+          icon: "📦",
+          description:
+            "Hier steht die Beschreibung des zweiten Meilensteins. Eure Kollegen können " +
+            "diesen Eintrag durch eine echte Station aus seiner Karriere ersetzen. " +
+            "Denkt an konkrete Projekte, lustige Anekdoten oder besondere Momente.",
+          tags: [
+            { text: "Euer Tag",   style: "teal"    },
+            { text: "Projekt XY", style: "primary" },
+          ],
+          funFact: "Hier könnt ihr einen witzigen Fun Fact oder eine Insider-Anekdote eintragen."
+        },
+        {
+          year: "2019",
+          title: "[MEILENSTEIN EINTRAGEN]",
+          icon: "📦",
+          description:
+            "Hier steht die Beschreibung des zweiten Meilensteins. Eure Kollegen können " +
+            "diesen Eintrag durch eine echte Station aus seiner Karriere ersetzen. " +
+            "Denkt an konkrete Projekte, lustige Anekdoten oder besondere Momente.",
+          tags: [
+            { text: "Euer Tag",   style: "teal"    },
+            { text: "Projekt XY", style: "primary" },
+          ],
+          funFact: "Hier könnt ihr einen witzigen Fun Fact oder eine Insider-Anekdote eintragen."
+        }
+      ]
+
+    };
+
+    // ===KONFIG ENDE===
+
+    // ================================================================
+    //  STATE
+    // ================================================================
+
+    let canvasActiveIdx = 0;
+    let canvasAnimFrame = null;
+
+    const state = {
+      currentStopIndex: 0,
+      totalStops: CONFIG.milestones.length,
+    };
+
+    // ================================================================
+    //  DOM HELPERS
+    // ================================================================
+
+    const $ = (id) => document.getElementById(id);
+    const setHTML = (id, html) => { const el = $(id); if (el) el.innerHTML = html; };
+    const setText = (id, text) => { const el = $(id); if (el) el.textContent = text; };
+
+    function showScreen(name) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      const target = $(`screen-${name}`);
+      if (target) target.classList.add('active');
+    }
+
+    // ================================================================
+    //  LOADING SEQUENCE
+    // ================================================================
+
+    const CONSOLE_LINES = [
+      { text: '> DASU Tourenplaner v2.0 wird initialisiert …', style: '',                       delay: 300  },
+      { text: '> Karrieredaten werden geladen …',              style: '',                       delay: 800  },
+      { text: `> ${state.totalStops} Meilensteine gefunden.`, style: 'console-line--highlight', delay: 1300 },
+      { text: '> Routenoptimierung läuft …',                  style: '',                       delay: 1800 },
+      { text: '> Distanz: ∞ km (unbezahlbar)',                 style: 'console-line--highlight', delay: 2300 },
+      { text: '> Fahrzeug: bereit ✔',                         style: 'console-line--success',  delay: 2700 },
+      { text: '> Alle Systeme grün. Bereit.',                  style: 'console-line--success',  delay: 3200 },
+    ];
+
+    function runLoadingSequence() {
+      const consoleEl    = $('loading-console');
+      const progressFill = $('progress-fill');
+      const progressWrap = $('progress-bar-wrapper');
+
+      CONSOLE_LINES.forEach(({ text, style, delay }, idx) => {
+        setTimeout(() => {
+          const line = document.createElement('div');
+          line.className = `console-line ${style}`;
+          line.textContent = text;
+          consoleEl.appendChild(line);
+          consoleEl.scrollTop = consoleEl.scrollHeight;
+
+          const progress = Math.round(((idx + 1) / CONSOLE_LINES.length) * 100);
+          progressFill.style.width = `${progress}%`;
+          progressWrap.setAttribute('aria-valuenow', progress);
+        }, delay);
+      });
+
+      setTimeout(() => showScreen('intro'), 3800);
+    }
+
+    // ================================================================
+    //  INTRO SCREEN
+    // ================================================================
+
+    function initIntroScreen() {
+      setText('employee-name-heading', `von ${CONFIG.employeeName}`);
+      setText('intro-description', CONFIG.introDescription);
+      setText('stat-stops',    String(state.totalStops));
+      setText('stat-years',    String(CONFIG.yearsAtDasu));
+      setText('stat-projects', String(CONFIG.projectCount));
+    }
+
+    // ================================================================
+    //  ROUTE TRACK
+    // ================================================================
+
+    function renderRouteTrack() {
+      const track = $('route-track');
+      track.innerHTML = '';
+
+      CONFIG.milestones.forEach((milestone, idx) => {
+        const stop = document.createElement('div');
+        stop.className = 'route-stop';
+        stop.id = `route-stop-${idx}`;
+        stop.setAttribute('role', 'listitem');
+        stop.setAttribute('aria-label', `Station ${idx + 1}: ${milestone.title}`);
+
+        const dot = document.createElement('div');
+        dot.className = 'route-stop__dot';
+        dot.textContent = String(idx + 1);
+        stop.appendChild(dot);
+        track.appendChild(stop);
+
+        if (idx < state.totalStops - 1) {
+          const connector = document.createElement('div');
+          connector.className = 'route-connector';
+          connector.id = `route-connector-${idx}`;
+          connector.setAttribute('aria-hidden', 'true');
+          track.appendChild(connector);
+        }
+      });
+    }
+
+    function updateRouteTrackState(currentIdx) {
+      CONFIG.milestones.forEach((_, idx) => {
+        const stop = $(`route-stop-${idx}`);
+        if (!stop) return;
+        stop.classList.remove('visited', 'current');
+        if (idx < currentIdx)       stop.classList.add('visited');
+        else if (idx === currentIdx) stop.classList.add('current');
+        if (idx === currentIdx) stop.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      });
+
+      for (let i = 0; i < state.totalStops - 1; i++) {
+        const conn = $(`route-connector-${i}`);
+        if (!conn) continue;
+        conn.classList.remove('completed', 'active');
+        if (i < currentIdx)       conn.classList.add('completed');
+        else if (i === currentIdx) conn.classList.add('active');
+      }
+    }
+
+    // ================================================================
+    //  MAP CANVAS
+    // ================================================================
+
+    function initMapCanvas() {
+      const canvas = $('map-canvas');
+      if (!canvas) return;
+      if (canvasAnimFrame) { cancelAnimationFrame(canvasAnimFrame); canvasAnimFrame = null; }
+
+      const container = canvas.parentElement;
+      canvas.width  = container.offsetWidth  || 800;
+      canvas.height = container.offsetHeight || 200;
+
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width;
+      const H = canvas.height;
+
+      // Hub: slightly left of center
+      const hub = { x: W * 0.32, y: H * 0.52 };
+
+      // Milestone nodes — spread to the right like a dispatch map
+      const milestoneNodes = CONFIG.milestones.map((_, i) => {
+        const n    = CONFIG.milestones.length;
+        const frac = n > 1 ? i / (n - 1) : 0.5;
+        const angle = (-Math.PI * 0.45) + frac * (Math.PI * 0.9);
+        const dist  = 0.38 + (i % 2) * 0.10 + (i % 3) * 0.04;
+        return {
+          x: Math.max(10, Math.min(W - 10, hub.x + Math.cos(angle) * W * dist)),
+          y: Math.max(10, Math.min(H - 10, hub.y + Math.sin(angle) * H * dist * 0.75)),
+        };
+      });
+
+      // Background scatter nodes
+      const bgNodes = Array.from({ length: 22 }, (_, i) => {
+        const angle = (i / 22) * Math.PI * 2;
+        const dist  = 0.12 + ((i * 37) % 19) / 19 * 0.42;
+        return {
+          x: Math.max(4, Math.min(W - 4, hub.x + Math.cos(angle) * W * dist)),
+          y: Math.max(4, Math.min(H - 4, hub.y + Math.sin(angle) * H * dist * 0.65)),
+        };
+      });
+
+      let pulseT = 0;
+
+      function draw() {
+        ctx.clearRect(0, 0, W, H);
+
+        // Background
+        ctx.fillStyle = '#060e11';
+        ctx.fillRect(0, 0, W, H);
+
+        // Faint grid
+        ctx.strokeStyle = 'rgba(0,200,224,0.03)';
+        ctx.lineWidth = 0.5;
+        for (let x = 0; x < W; x += 44) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+        for (let y = 0; y < H; y += 44) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+        // Background lines
+        bgNodes.forEach(n => {
+          ctx.beginPath(); ctx.moveTo(hub.x, hub.y); ctx.lineTo(n.x, n.y);
+          ctx.strokeStyle = 'rgba(0,200,224,0.13)'; ctx.lineWidth = 0.6; ctx.stroke();
+        });
+
+        // Milestone lines
+        milestoneNodes.forEach((node, i) => {
+          if (i === canvasActiveIdx) return;
+          const visited = i < canvasActiveIdx;
+          ctx.beginPath(); ctx.moveTo(hub.x, hub.y); ctx.lineTo(node.x, node.y);
+          ctx.strokeStyle = visited ? 'rgba(120,190,115,0.55)' : 'rgba(0,200,224,0.28)';
+          ctx.lineWidth   = visited ? 1.5 : 0.8;
+          ctx.stroke();
+        });
+
+        // Active milestone line — yellow + traveling dot
+        const activeNode = milestoneNodes[canvasActiveIdx];
+        if (activeNode) {
+          const alpha = 0.55 + Math.sin(pulseT * 0.05) * 0.3;
+          ctx.beginPath(); ctx.moveTo(hub.x, hub.y); ctx.lineTo(activeNode.x, activeNode.y);
+          ctx.strokeStyle = `rgba(255,220,60,${alpha})`; ctx.lineWidth = 2; ctx.stroke();
+
+          const t    = (pulseT * 0.018) % 1;
+          const dotX = hub.x + (activeNode.x - hub.x) * t;
+          const dotY = hub.y + (activeNode.y - hub.y) * t;
+          ctx.beginPath(); ctx.arc(dotX, dotY, 3.5, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,220,60,${0.7 + Math.sin(pulseT * 0.1) * 0.3})`; ctx.fill();
+        }
+
+        // Background endpoint dots
+        bgNodes.forEach(n => {
+          ctx.beginPath(); ctx.arc(n.x, n.y, 1.8, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(0,200,224,0.35)'; ctx.fill();
+        });
+
+        // Milestone endpoint dots
+        milestoneNodes.forEach((node, i) => {
+          const isActive  = i === canvasActiveIdx;
+          const isVisited = i < canvasActiveIdx;
+          const r = isActive ? 5 : 3;
+          const color = isActive
+            ? `rgba(255,220,60,${0.85 + Math.sin(pulseT * 0.09) * 0.15})`
+            : isVisited ? 'rgba(120,190,115,0.8)' : 'rgba(0,200,224,0.45)';
+
+          if (isActive) {
+            ctx.beginPath(); ctx.arc(node.x, node.y, r + 5 + Math.sin(pulseT * 0.07) * 2, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255,220,60,0.18)'; ctx.lineWidth = 1; ctx.stroke();
+          }
+          ctx.beginPath(); ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
+          ctx.fillStyle = color; ctx.fill();
+        });
+
+        // Hub dot
+        ctx.beginPath(); ctx.arc(hub.x, hub.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,200,224,0.9)'; ctx.fill();
+        ctx.beginPath(); ctx.arc(hub.x, hub.y, 11, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0,200,224,0.35)'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.beginPath(); ctx.arc(hub.x, hub.y, 16 + Math.sin(pulseT * 0.06) * 2, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0,200,224,0.12)'; ctx.lineWidth = 1; ctx.stroke();
+
+        pulseT++;
+        canvasAnimFrame = requestAnimationFrame(draw);
+      }
+
+      draw();
+    }
+
+    // ================================================================
+    //  MILESTONE SPECIAL EFFECTS
+    // ================================================================
+
+    function generateRainLogos() {
+      const container = $('rain-container');
+      container.innerHTML = '';
+      
+      const logoUrl = 'data/ABM_Logo_RGB_Color_720.png';
+      const logosCount = 12;
+      
+      for (let i = 0; i < logosCount; i++) {
+        const logo = document.createElement('div');
+        logo.className = 'rain-logo';
+        
+        // Zufällige Animation: normal, rotating, oder rotating-rev
+        const animType = Math.random();
+        if (animType < 0.33) {
+          logo.classList.add('normal');
+        } else if (animType < 0.66) {
+          logo.classList.add('rotating');
+        } else {
+          logo.classList.add('rotating-rev');
+        }
+        
+        // Zufällige Position von links nach rechts
+        const randomX = Math.random() * 100;
+        logo.style.left = `${randomX}%`;
+        
+        // Zufällige Startzeit für Staggering
+        const delay = Math.random() * 2;
+        logo.style.animationDelay = `${delay}s`;
+        
+        const img = document.createElement('img');
+        img.src = logoUrl;
+        img.alt = 'ABM Logo';
+        logo.appendChild(img);
+        
+        container.appendChild(logo);
+      }
+    }
+
+    function toggleMilestoneSpecial(idx) {
+      const specialEl = $('milestone-special');
+      if (idx === 2) { // Meilenstein 3 (Index 2)
+        specialEl.classList.remove('hidden');
+        generateRainLogos();
+      } else {
+        specialEl.classList.add('hidden');
+        $('rain-container').innerHTML = '';
+      }
+    }
+
+    // ================================================================
+    //  MILESTONE CARD (DATA PANEL)
+    // ================================================================
+
+    function renderMilestoneCard(idx) {
+      const m = CONFIG.milestones[idx];
+
+      // Header
+      setText('dp-tour-num', String(idx + 1));
+
+      // tour_id row
+      const tourIdEl = $('dp-tour-id-val');
+      if (tourIdEl) {
+        tourIdEl.innerHTML =
+          `<span class="dp-tour-meta">Tour ID: ${idx + 1} &nbsp;·&nbsp; ` +
+          `Von: ${m.year} &nbsp;·&nbsp; ${m.icon} Abfahrt &#x2192;</span>`;
+      }
+
+      // tour_info row: title + description as steps + tags
+      const infoEl = $('dp-tour-info');
+      if (infoEl) {
+        const sentences = m.description.match(/[^.!?]+[.!?]+/g) || [m.description];
+        let html = `<span class="dp-title">${m.title}</span>`;
+        sentences.forEach((s, i) => {
+          html += `<span class="dp-step">` +
+                  `<span class="dp-step-num">Step ${i + 1}:</span> ` +
+                  `<span class="dp-step-paren">${s.trim()}</span>` +
+                  `</span>`;
+        });
+        if (m.tags && m.tags.length) {
+          html += `<span class="dp-tags">`;
+          m.tags.forEach(tag => {
+            const mod = tag.style === 'primary' ? '' : ` dp-tag--${tag.style}`;
+            html += `<span class="dp-tag${mod}">${tag.text}</span>`;
+          });
+          html += `</span>`;
+        }
+        infoEl.innerHTML = html;
+      }
+
+      // fun_fact row
+      const ffRow = $('dp-row-funfact');
+      const ffVal = $('dp-funfact-val');
+      if (ffVal) {
+        if (m.funFact) {
+          ffVal.textContent = m.funFact;
+          if (ffRow) ffRow.style.display = '';
+        } else {
+          if (ffRow) ffRow.style.display = 'none';
+        }
+      }
+
+      // tour_date
+      setText('dp-date-val', m.year);
+
+      // Header title + counters
+      setText('tour-section-title', m.title);
+      setText('current-stop-num', String(idx + 1));
+      setText('total-stop-num',   String(state.totalStops));
+
+      // Animate card
+      const card = $('milestone-card');
+      card.classList.remove('fade-in');
+      void card.offsetWidth;
+      card.classList.add('fade-in');
+
+      // Buttons
+      $('btn-prev').disabled     = idx === 0;
+      $('btn-prev').style.opacity = idx === 0 ? '0.35' : '';
+
+      const isLast = idx === state.totalStops - 1;
+      const nextBtn = $('btn-next');
+      nextBtn.textContent = isLast ? '🎁 Geschenk öffnen!' : 'Weiter →';
+      nextBtn.className   = isLast ? 'btn btn--pink' : 'btn btn--primary';
+
+      // Canvas highlight
+      canvasActiveIdx = idx;
+
+      // Toggle milestone special effects
+      toggleMilestoneSpecial(idx);
+    }
+
+    // ================================================================
+    //  TOUR NAVIGATION
+    // ================================================================
+
+    function navigateToStop(idx) {
+      if (idx < 0 || idx >= state.totalStops) return;
+      state.currentStopIndex = idx;
+      updateRouteTrackState(idx);
+      renderMilestoneCard(idx);
+    }
+
+    function initTourScreen() {
+      renderRouteTrack();
+      navigateToStop(0);
+      setTimeout(initMapCanvas, 80);
+    }
+
+    // ================================================================
+    //  REVEAL SCREEN
+    // ================================================================
+
+    function initRevealScreen() {
+      setText('reveal-heading',    `Tour abgeschlossen, ${CONFIG.employeeName.split(' ')[0]}!`);
+      setText('reveal-subheading', CONFIG.revealSubheading);
+      setText('voucher-code',      CONFIG.voucherCode);
+      setText('voucher-details',   CONFIG.voucherDetails);
+      setText('reveal-signature',  CONFIG.revealSignature);
+
+      $('btn-copy-voucher').addEventListener('click', () => {
+        navigator.clipboard.writeText(CONFIG.voucherCode).then(() => {
+          setText('copy-label', 'Kopiert!'); setText('copy-icon', '✅');
+          $('btn-copy-voucher').classList.add('copied');
+          setTimeout(() => {
+            setText('copy-label', 'Code kopieren'); setText('copy-icon', '📋');
+            $('btn-copy-voucher').classList.remove('copied');
+          }, 2500);
+        }).catch(() => {
+          const range = document.createRange();
+          const el = $('voucher-code');
+          range.selectNode(el);
+          window.getSelection()?.removeAllRanges();
+          window.getSelection()?.addRange(range);
+        });
+      });
+    }
+
+    // ================================================================
+    //  EVENT LISTENERS
+    // ================================================================
+
+    function attachEventListeners() {
+      $('btn-start-tour').addEventListener('click', () => {
+        initTourScreen();
+        showScreen('tour');
+      });
+
+      $('btn-next').addEventListener('click', () => {
+        if (state.currentStopIndex < state.totalStops - 1) {
+          navigateToStop(state.currentStopIndex + 1);
+        } else {
+          if (canvasAnimFrame) { cancelAnimationFrame(canvasAnimFrame); canvasAnimFrame = null; }
+          showScreen('reveal');
+        }
+      });
+
+      $('btn-prev').addEventListener('click', () => navigateToStop(state.currentStopIndex - 1));
+
+      document.addEventListener('keydown', (e) => {
+        if (!$('screen-tour').classList.contains('active')) return;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); $('btn-next').click(); }
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); $('btn-prev').click(); }
+      });
+
+      $('btn-restart').addEventListener('click', () => {
+        state.currentStopIndex = 0;
+        showScreen('loading');
+        $('loading-console').innerHTML = '';
+        $('progress-fill').style.width = '0%';
+        setTimeout(runLoadingSequence, 100);
+      });
+    }
+
+    // ================================================================
+    //  INIT
+    // ================================================================
+
+    function init() {
+      initIntroScreen();
+      initRevealScreen();
+      attachEventListeners();
+      runLoadingSequence();
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+
+</body>
+</html>
