@@ -811,6 +811,23 @@
           funFact: "Joachim ist der wahre Kaffeeekönig."
         },
         {
+          year: "2023",
+          title: "WIFI-Motion-Sensing",
+          icon: "📶",
+          description:
+            "Hypothese aufstellen: Anhand des WIFI-Signals weiß dein Kühlschrank, wenn du kommst, um ihn zu öffnen. " +
+            "Testprobanden sammeln, Laufstrecke mit buntem Klebeband markieren. Lustige Videos aufnehmen. " +
+            "In die Küche umziehen: Kaffee kochen, Imaginäres Gemüse schneiden, Pflanze gießen. " +
+            "Modell trainieren und über 94 Prozent Genauigkeit jubeln. " +
+            "Fazit: Der Kühlschrank könnte wissen, wenn Joachim nicht mehr da ist.",
+          tags: [
+            { text: "CSI-Amplitude",      style: "primary" },
+            { text: "Bewegungserkennung", style: "green"   },
+            { text: "Testperson JHE",     style: "teal"    },
+          ],
+          funFact: "Im echten Leben steht niemand wie eine Statue."
+        },
+        {
           year: "2019",
           title: "[MEILENSTEIN EINTRAGEN]",
           icon: "📦",
@@ -840,7 +857,7 @@
             { text: "Kundenprojekt",     style: "teal"    },
           ],
           funFact:
-            "ABM"
+            "Man kann nie genug RAM haben."
         },
         {
           year: "2026",
@@ -857,6 +874,23 @@
             { text: "KI", style: "pink"    }
           ],
           funFact: "TBD"
+        },
+        {
+          year: "2026",
+          title: "Radar-2-Radar 2",
+          icon: "📡",
+          description:
+            "Source- und Targetdaten verstehen sich nicht. Vermittler gesucht." +
+            "Einen Berg Survey-Paper und GitHub Repos lesen, bis die Augen bluten. " +
+            "Neun DA-Paradigmen verstehen wollen und an GRL, EMA, AdaIN, DSBN und CORAL verzweifeln. " +
+            "Alles in eine Ranking-Tabelle pressen. " +
+            "Erkennen: Es gibt zu wenig Paper zu Domain Adaption. Neues Ziel: selbst einen Report verfassen.",
+          tags: [
+            { text: "Range-Doppler",     style: "primary" },
+            { text: "Domain Adaptation", style: "green"   },
+            { text: "Survey-Marathon",   style: "teal"    },
+          ],
+          funFact: "Der Browser hatte mehr offene Paper-Tabs als der Rechner RAM. Moment. Gibt's hier noch RAM?"
         },
         {
           year: "2026-05",
@@ -1173,7 +1207,7 @@
 
     function toggleMilestoneSpecial(idx) {
       const specialEl = $('milestone-special');
-      if (idx === 2) { // Meilenstein 3 (Index 2)
+      if (idx === 3) { // Meilenstein 4 (Index 3)
         specialEl.classList.remove('hidden');
         generateRainLogos();
       } else {
