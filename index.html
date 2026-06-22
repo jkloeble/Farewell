@@ -6,7 +6,7 @@
   <title>DASU Karriere-Tourenplaner</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
 
   <style>
     /* ============================================================
@@ -30,12 +30,12 @@
       --color-border-bright:  rgba(128, 128, 250, 0.6);
 
       --color-text-primary:   #f5f5ff;
-      --color-text-secondary: rgba(245, 245, 255, 0.65);
-      --color-text-muted:     rgba(245, 245, 255, 0.35);
+      --color-text-secondary: rgba(245, 245, 255, 0.80);
+      --color-text-muted:     rgba(245, 245, 255, 0.55);
 
       --font-display:         'Space Grotesk', sans-serif;
       --font-body:            'Inter', sans-serif;
-      --font-mono:            'Courier New', monospace;
+      --font-mono:            'IBM Plex Mono', monospace;
 
       --space-xs:   4px;
       --space-sm:   8px;
@@ -351,10 +351,10 @@
     .data-panel__row:last-child { border-bottom: none; }
     .data-panel__key {
       padding: 10px 14px;
-      color: rgba(0, 200, 224, 0.5);
+      color: rgba(0, 200, 224, 0.85);
       border-right: 1px solid rgba(0, 200, 224, 0.07);
       background: rgba(0, 0, 0, 0.2);
-      font-style: italic; font-size: 11px;
+      font-style: italic; font-size: 12px; font-weight: 500;
       line-height: 1.5; word-break: break-all;
     }
     .data-panel__value {
@@ -373,7 +373,7 @@
       font-weight: 700; color: var(--color-text-primary);
       font-style: normal; margin-bottom: 7px;
     }
-    .dp-step { display: block; font-size: 11px; margin-bottom: 2px; }
+    .dp-step { display: block; font-size: 13px; font-family: var(--font-body); margin-bottom: 2px; }
     .dp-step-num { color: var(--color-cyan); font-weight: 700; }
     .dp-step-paren { color: rgba(245, 245, 255, 0.85); }
     .dp-tags { display: block; margin-top: 8px; }
@@ -389,7 +389,7 @@
     .dp-tag--green  { background: rgba(120,190,115,0.1); border-color: rgba(120,190,115,0.3); color: var(--color-accent-green); }
     .dp-tag--pink   { background: rgba(245,95,130,0.1);  border-color: rgba(245,95,130,0.3);  color: var(--color-accent-pink); }
     .dp-tag--teal   { background: rgba(40,117,121,0.12); border-color: rgba(140,200,175,0.3); color: var(--color-accent-mint); }
-    .dp-funfact     { font-style: italic; font-size: 11px; color: var(--color-text-muted); }
+    .dp-funfact     { font-style: italic; font-size: 11px; color: var(--color-cyan); }
     .dp-date        { font-size: 12px; color: var(--color-text-primary); letter-spacing: 0.06em; }
 
     /* ============================================================
@@ -795,8 +795,24 @@
       revealSignature: "Mit bestem Dank und besten Wünschen — dein DASU-Team 💙",
 
       milestones: [
+        {
+          year: "2023-03",
+          title: "Welcome on Board, Newbie",
+          icon: "👋",
+          description:
+            "Am 20.03.2023 als Werkstudent anheuern, Kopf voller Machine-Learning-Pläne. " +
+            "In der Bewerbung versprechen, etwas mit KI und Industrie zu reißen. " +
+            "Vorsichtig herausfinden, wo die Kaffeemaschine steht (folgenschwerer erster Schritt). " +
+            "Bis 30.09.2023 bleiben wollen - theoretisch.",
+          tags: [
+            { text: "Werkstudent",     style: "primary" },
+            { text: "Machine Learning", style: "green"  },
+            { text: "Industrie",       style: "teal"    },
+          ],
+          funFact: "Zitat aus der Bewerbung: 'Ich interessiere mich sehr für eine Karriere im Bereich des Machine Learnings, besonders mit Bezug auf die Industrie.'"
+        },
        {
-          year: "2019",
+          year: "2023",
           title: "Der Werdegang eines Kaffeekönigs",
           icon: "☕",
           description:
@@ -891,6 +907,21 @@
             { text: "Survey-Marathon",   style: "teal"    },
           ],
           funFact: "Der Browser hatte mehr offene Paper-Tabs als der Rechner RAM. Moment. Gibt's hier noch RAM?"
+        },
+        {
+          year: "2026",
+          title: "Erste Praktikantin, erster Mentor",
+          icon: "🧑‍🏫",
+          description:
+            "Die allererste Schüler-Praktikantin des DASU betreuen." +
+            "Ihr DASU erklären, ohne sie zu verschrecken. " +
+            "So gut betreuen, dass sie direkt länger bleiben will. " +
+            "Heimlich stolz sein, nach außen cool bleiben.",
+          tags: [
+            { text: "Mentoring",   style: "primary" },
+            { text: "BOGY-Praktikum",   style: "green"   },
+          ],
+          funFact: "Macht ihr hier den ganzen Tag nur Meetings?"
         },
         {
           year: "2026-05",
@@ -1207,7 +1238,7 @@
 
     function toggleMilestoneSpecial(idx) {
       const specialEl = $('milestone-special');
-      if (idx === 3) { // Meilenstein 4 (Index 3)
+      if (idx === 4) { // Meilenstein 5 (Index 4)
         specialEl.classList.remove('hidden');
         generateRainLogos();
       } else {
@@ -1237,7 +1268,7 @@
       // tour_info row: title + description as steps + tags
       const infoEl = $('dp-tour-info');
       if (infoEl) {
-        const sentences = m.description.match(/[^.!?]+[.!?]+/g) || [m.description];
+        const sentences = m.description.split(/(?<=[.!?])\s+/).filter(Boolean);
         let html = `<span class="dp-title">${m.title}</span>`;
         sentences.forEach((s, i) => {
           html += `<span class="dp-step">` +
