@@ -657,6 +657,75 @@
     .quiz-feedback.visible { opacity: 1; }
     .quiz-feedback.complicated { color: #ff6b6b; font-weight: 600; }
 
+    /* ============================================================
+       DASU-SCORE EHRUNG (TROPHÄE)
+    ============================================================ */
+    .score-special {
+      width: 100%; margin-bottom: var(--space-lg); position: relative;
+      min-height: 340px; border-radius: var(--radius-lg);
+      background: radial-gradient(circle at 50% 38%, rgba(0,0,245,0.28), var(--color-map-bg) 72%);
+      border: 1px solid var(--color-border);
+      overflow: hidden;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: var(--space-xl) var(--space-lg);
+      text-align: center;
+    }
+    .score-special.hidden { display: none; }
+
+    .score-confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 3; }
+    .confetti-piece {
+      position: absolute; top: -16px; width: 8px; height: 14px; border-radius: 1px;
+      animation: confetti-fall linear infinite;
+    }
+    @keyframes confetti-fall {
+      from { transform: translateY(-20px) rotate(0deg); opacity: 0.95; }
+      to   { transform: translateY(380px) rotate(720deg); opacity: 0; }
+    }
+
+    .score-spotlight {
+      position: absolute; z-index: 1; top: 4%; left: 50%;
+      width: 360px; height: 360px; transform: translateX(-50%);
+      background: conic-gradient(from 0deg,
+        transparent 0deg, rgba(255,213,74,0.14) 22deg, transparent 44deg,
+        transparent 180deg, rgba(255,213,74,0.14) 202deg, transparent 224deg);
+      animation: spotlight-spin 9s linear infinite;
+      pointer-events: none;
+    }
+    @keyframes spotlight-spin { to { transform: translateX(-50%) rotate(360deg); } }
+
+    .score-trophy {
+      position: relative; z-index: 2; width: 120px; height: auto;
+      filter: drop-shadow(0 0 18px rgba(255, 213, 74, 0.65));
+      animation: trophy-float 3s ease-in-out infinite;
+    }
+    @keyframes trophy-float {
+      0%,100% { transform: translateY(0) rotate(-2deg); }
+      50%     { transform: translateY(-10px) rotate(2deg); }
+    }
+
+    .score-label {
+      position: relative; z-index: 2;
+      font-family: var(--font-display); font-size: 12px; font-weight: 600;
+      letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-primary-light);
+      margin-top: var(--space-md);
+    }
+    .score-value {
+      position: relative; z-index: 2;
+      font-family: var(--font-mono); font-weight: 700; font-size: 42px;
+      color: #ffd54a; text-shadow: 0 0 22px rgba(255,213,74,0.5);
+      line-height: 1.1;
+    }
+    .score-substats {
+      position: relative; z-index: 2;
+      font-family: var(--font-mono); font-size: 13px; color: var(--color-text-muted);
+      margin-top: var(--space-xs);
+    }
+    .score-caption {
+      position: relative; z-index: 2;
+      font-family: var(--font-display); font-size: 15px; font-weight: 600;
+      color: var(--color-text-primary); margin-top: var(--space-md);
+    }
+
     @media (max-width: 600px) {
       .intro__stats { gap: var(--space-sm); }
       .stat-card { min-width: 100px; padding: var(--space-md); }
@@ -804,6 +873,17 @@
           💼 Zur Bewerbung
         </a>
       </div>
+    </div>
+
+    <!-- DASU-Score Ehrung -->
+    <div id="score-special" class="score-special hidden">
+      <div class="score-confetti" id="score-confetti"></div>
+      <div class="score-spotlight" aria-hidden="true"></div>
+      <img src="data/dasu_score.png" alt="DASU-Score Trophäe" class="score-trophy">
+      <div class="score-label">Offizieller DASU-Score</div>
+      <div class="score-value" id="score-value">0</div>
+      <div class="score-substats">Kaffee: ∞ &nbsp;·&nbsp; RAM: alles &nbsp;·&nbsp; Tokens: Gerne</div>
+      <div class="score-caption">🎊 Der Rest ist Legende 🎊</div>
     </div>
 
     <!-- Navigation -->
@@ -1417,6 +1497,62 @@
     }
 
     // ================================================================
+    //  DASU-SCORE EHRUNG (TROPHÄE)
+    // ================================================================
+
+    let scoreCountRaf = null;
+
+    function toggleScoreSpecial(idx) {
+      const el = $('score-special');
+      const isScoreStop = CONFIG.milestones[idx].title.startsWith('Joachim I.');
+      if (isScoreStop) {
+        el.classList.remove('hidden');
+        generateConfetti();
+        animateScoreCount();
+      } else {
+        el.classList.add('hidden');
+        if (scoreCountRaf) { cancelAnimationFrame(scoreCountRaf); scoreCountRaf = null; }
+        $('score-confetti').innerHTML = '';
+      }
+    }
+
+    function generateConfetti() {
+      const container = $('score-confetti');
+      container.innerHTML = '';
+      const colors = ['#0000f5', '#8080fa', '#78be73', '#f55f82', '#ffd54a', '#00c8e0'];
+      for (let i = 0; i < 44; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        piece.style.left = (Math.random() * 100) + '%';
+        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+        piece.style.animationDuration = (2 + Math.random() * 2) + 's';
+        piece.style.animationDelay = (Math.random() * 2.5) + 's';
+        container.appendChild(piece);
+      }
+    }
+
+    function animateScoreCount() {
+      const el = $('score-value');
+      if (scoreCountRaf) { cancelAnimationFrame(scoreCountRaf); scoreCountRaf = null; }
+      const target = 9999999, duration = 2200;
+      let start = null;
+      el.textContent = '0';
+      function step(ts) {
+        if (start === null) start = ts;
+        const p = Math.min((ts - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.floor(eased * target).toLocaleString('de-DE');
+        if (p < 1) {
+          scoreCountRaf = requestAnimationFrame(step);
+        } else {
+          el.textContent = '∞';
+          scoreCountRaf = null;
+        }
+      }
+      scoreCountRaf = requestAnimationFrame(step);
+    }
+
+    // ================================================================
     //  MILESTONE CARD (DATA PANEL)
     // ================================================================
 
@@ -1497,6 +1633,7 @@
       // Toggle milestone special effects
       toggleMilestoneSpecial(idx);
       toggleQuizSpecial(idx);
+      toggleScoreSpecial(idx);
     }
 
     // ================================================================
