@@ -592,6 +592,71 @@
       transform: translateY(-1px);
     }
 
+    /* ============================================================
+       SCHULUNGEN QUIZ
+    ============================================================ */
+    .quiz-special {
+      width: 100%; margin-bottom: var(--space-lg);
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .quiz-special.hidden, .quiz-special .hidden { display: none; }
+
+    .quiz-box {
+      width: 100%;
+      background: var(--color-surface-1);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      text-align: center;
+    }
+    .quiz-question {
+      font-family: var(--font-display); font-size: 18px; font-weight: 600;
+      color: var(--color-text-primary); margin-bottom: var(--space-lg);
+    }
+    .quiz-options {
+      display: flex; flex-direction: column; gap: var(--space-md);
+      align-items: stretch; max-width: 420px; margin: 0 auto;
+    }
+    .quiz-option {
+      padding: 12px 20px; border-radius: var(--radius-full);
+      font-family: var(--font-display); font-size: 14px; font-weight: 600;
+      background: transparent; border: 1px solid var(--color-border-bright);
+      color: var(--color-text-secondary); cursor: pointer;
+      transition: var(--transition-fast);
+    }
+    .quiz-option:hover:not(:disabled) {
+      border-color: var(--color-primary-light);
+      color: var(--color-text-primary);
+    }
+    .quiz-option:disabled { cursor: default; }
+
+    .quiz-option.correct-glow {
+      border-color: #ff3b3b;
+      background: rgba(255, 59, 59, 0.15);
+      color: #fff;
+      animation: quiz-glow-red 0.9s ease-in-out infinite alternate;
+    }
+    @keyframes quiz-glow-red {
+      from { box-shadow: 0 0 6px rgba(255, 59, 59, 0.4); }
+      to   { box-shadow: 0 0 28px rgba(255, 59, 59, 0.9); }
+    }
+
+    .quiz-option.wrong { animation: quiz-shake 0.4s ease; opacity: 0.6; }
+    @keyframes quiz-shake {
+      25% { transform: translateX(-5px); }
+      50% { transform: translateX(5px); }
+      75% { transform: translateX(-5px); }
+    }
+
+    .quiz-feedback {
+      margin-top: var(--space-lg); min-height: 22px;
+      font-family: var(--font-mono); font-size: 14px;
+      color: var(--color-text-muted);
+      opacity: 0; transition: opacity 0.3s ease;
+    }
+    .quiz-feedback.visible { opacity: 1; }
+    .quiz-feedback.complicated { color: #ff6b6b; font-weight: 600; }
+
     @media (max-width: 600px) {
       .intro__stats { gap: var(--space-sm); }
       .stat-card { min-width: 100px; padding: var(--space-md); }
@@ -712,6 +777,20 @@
         <div class="data-panel__value">
           <span class="dp-date" id="dp-date-val"></span>
         </div>
+      </div>
+    </div>
+
+    <!-- Schulungen Quiz -->
+    <div id="quiz-special" class="quiz-special hidden">
+      <button class="btn btn--primary" id="btn-start-quiz">🧠 Start Quiz</button>
+      <div class="quiz-box hidden" id="quiz-box">
+        <div class="quiz-question">Was ist RAG?</div>
+        <div class="quiz-options">
+          <button class="quiz-option" data-correct="false">Die Lösung für alles auf der Welt</button>
+          <button class="quiz-option" data-correct="true">Retrieval-Augmented Generation</button>
+          <button class="quiz-option" data-correct="false">Ein Topping bei der grünen Insel</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-feedback" aria-live="polite"></div>
       </div>
     </div>
 
@@ -842,6 +921,71 @@
             { text: "Testperson JHE",     style: "teal"    },
           ],
           funFact: "Im echten Leben steht niemand wie eine Statue."
+        },
+        {
+          year: "2025",
+          title: "Kulturnacht",
+          icon: "🎲",
+          description:
+            "Wäre es cool wenn wir etwas an der Kulternacht machen? " +
+            "Weiterentwicklung von Kunst + KI. " +
+            "Heute ist Kulturnacht? Zeit für ein paar Style-Transfer Trainings. " +
+            "~500 Leute sorgen für ein volles Haus. ",
+          tags: [
+            { text: "Laminiergerät",      style: "primary" },
+            { text: "Ein Style geht noch", style: "brown"   },
+          ],
+          funFact: "Sollte das Schild nicht leuchten?"
+        },
+        {
+          year: "2024 - 2025",
+          title: "Schulungen",
+          icon: "👨‍🏫",
+          description:
+            "PrivateGPT holt dich wenn du es am wenigsten erwartest. " +
+            "Schulungsmaterialien für niedrigschwelligen Eintstieg erstellen. " +
+            "Dry Run 1. " +
+            "Verfeinern, verfeinern, verfeinern. " +
+            "Dry Run 2. " +
+            "Lobendes Feedback erhalten. " +
+            "Fujitsu Material vorstellen (siehe Quiz).",
+          tags: [
+            { text: "Komplex",      style: "red" },
+            { text: "Teacher-Mode", style: "yellow"   },
+            { text: "Interaktiv",     style: "green"    },
+          ],
+          funFact: "Ist das eine Schulung? Ist das ein ausgeklügelter Plan für einen Raub? Nein, es ist zu kompliziert für den Vertrieb."
+        },
+        {
+          year: "2025",
+          title: "Prototyptesting - Brettspielgruppe",
+          icon: "🎲",
+          description:
+            "Auftrag: MVP Testing vor einem weiter ausgelegten Release. " +
+            "Anstatt Freitagabend aus dem Büro zu gehen bleiben. " +
+            "Hole den Chipstopf hervor. " +
+            "Spiele einen Steingolem in einem mehr als jahresfüllendem Brettspiel. " +
+            "Fazit: Das Konzept ist bereit für weitere Testgruppen. ",
+          tags: [
+            { text: "Dasu & Dragons",      style: "blue" },
+            { text: "Gloomhaven", style: "red"   },
+            { text: "Spirit Island",     style: "green"    },
+          ],
+          funFact: "Wie spät ist es? Masala Zeit."
+        },
+        {
+          year: "2025",
+          title: "Joachim I., erster seines Namens, Meister des RAMs, Trinker des Kaffess sowie der erste Träger des DASU-Scores",
+          icon: "↗️",
+          description:
+            "Die Kulturnacht war so nice, lets do it twice. " +
+            "Aufstocken des Teams. " +
+            "Trickse die meisten Menschen im AI-Quiz aus. " +
+            "Der Rest ist Legende. ",
+          tags: [
+            { text: "",      style: "primary" },
+          ],
+          funFact: "Ist das AI? - Nein."
         },
         {
           year: "2024–2026",
@@ -1240,13 +1384,36 @@
 
     function toggleMilestoneSpecial(idx) {
       const specialEl = $('milestone-special');
-      if (idx === 4) { // Meilenstein 5 (Index 4)
+      const isBewerbungStop = CONFIG.milestones[idx].title.startsWith('Tourenplanung');
+      if (isBewerbungStop) {
         specialEl.classList.remove('hidden');
         generateRainLogos();
       } else {
         specialEl.classList.add('hidden');
         $('rain-container').innerHTML = '';
       }
+    }
+
+    // ================================================================
+    //  SCHULUNGEN QUIZ
+    // ================================================================
+
+    function toggleQuizSpecial(idx) {
+      const isQuizStop = CONFIG.milestones[idx].title === 'Schulungen';
+      $('quiz-special').classList.toggle('hidden', !isQuizStop);
+      if (isQuizStop) resetQuiz();
+    }
+
+    function resetQuiz() {
+      $('btn-start-quiz').classList.remove('hidden');
+      $('quiz-box').classList.add('hidden');
+      const fb = $('quiz-feedback');
+      fb.textContent = '';
+      fb.classList.remove('visible', 'complicated');
+      document.querySelectorAll('.quiz-option').forEach(btn => {
+        btn.classList.remove('correct-glow', 'wrong');
+        btn.disabled = false;
+      });
     }
 
     // ================================================================
@@ -1329,6 +1496,7 @@
 
       // Toggle milestone special effects
       toggleMilestoneSpecial(idx);
+      toggleQuizSpecial(idx);
     }
 
     // ================================================================
@@ -1385,6 +1553,29 @@
       $('btn-start-tour').addEventListener('click', () => {
         initTourScreen();
         showScreen('tour');
+      });
+
+      $('btn-start-quiz').addEventListener('click', () => {
+        $('btn-start-quiz').classList.add('hidden');
+        $('quiz-box').classList.remove('hidden');
+      });
+
+      document.querySelectorAll('.quiz-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const fb = $('quiz-feedback');
+          if (btn.dataset.correct === 'true') {
+            document.querySelectorAll('.quiz-option').forEach(b => { b.disabled = true; });
+            btn.classList.add('correct-glow');
+            fb.textContent = 'Oh das ist zu kompliziert.';
+            fb.classList.add('visible', 'complicated');
+          } else {
+            btn.classList.add('wrong');
+            setTimeout(() => btn.classList.remove('wrong'), 450);
+            fb.textContent = 'Hmm, da stimmt was noch nicht…';
+            fb.classList.add('visible');
+            fb.classList.remove('complicated');
+          }
+        });
       });
 
       $('btn-next').addEventListener('click', () => {
