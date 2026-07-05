@@ -1,0 +1,1846 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tourenplanungs-Rätsel · Angewandte Betriebsmesstechnik GmbH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ============================================================
+       DESIGN TOKENS (identisch zur Hauptseite)
+    ============================================================ */
+    :root {
+      --color-primary:        #0000f5;
+      --color-primary-dark:   #0a00ff;
+      --color-primary-light:  #8080fa;
+      --color-primary-xlight: #f5f5ff;
+
+      --color-accent-green:   #78be73;
+      --color-accent-pink:    #f55f82;
+      --color-accent-teal:    #287579;
+      --color-accent-mint:    #8cc8af;
+
+      --color-bg:             #030018;
+      --color-surface-1:      #0a0030;
+      --color-surface-2:      #10005a;
+      --color-border:         rgba(128, 128, 250, 0.25);
+      --color-border-bright:  rgba(128, 128, 250, 0.6);
+
+      --color-text-primary:   #f5f5ff;
+      --color-text-secondary: rgba(245, 245, 255, 0.80);
+      --color-text-muted:     rgba(245, 245, 255, 0.55);
+
+      --font-display:         'Space Grotesk', sans-serif;
+      --font-body:            'Inter', sans-serif;
+      --font-mono:            'IBM Plex Mono', monospace;
+
+      --space-xs:   4px;
+      --space-sm:   8px;
+      --space-md:   16px;
+      --space-lg:   24px;
+      --space-xl:   40px;
+      --space-2xl:  64px;
+
+      --radius-sm:  6px;
+      --radius-md:  12px;
+      --radius-lg:  20px;
+      --radius-full: 9999px;
+
+      --transition-fast:   150ms ease;
+      --transition-normal: 300ms ease;
+
+      --color-cyan:        #00c8e0;
+      --color-map-bg:      #060e11;
+
+      /* Task-Farben (Timeline & Karten-Badges) */
+      --task-A: #f55f82;
+      --task-P: #8080fa;
+      --task-E: #00c8e0;
+      --task-B: #8cc8af;
+      --task-F: #78be73;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-body);
+      background-color: var(--color-bg);
+      color: var(--color-text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* ============================================================
+       BACKGROUND
+    ============================================================ */
+    .bg-grid {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image:
+        linear-gradient(rgba(128,128,250,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(128,128,250,0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    .bg-glow {
+      position: fixed; border-radius: 50%;
+      filter: blur(120px); pointer-events: none; z-index: 0;
+    }
+    .bg-glow--blue {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(0,0,245,0.18) 0%, transparent 70%);
+      top: -200px; left: -100px;
+      animation: glow-drift 12s ease-in-out infinite alternate;
+    }
+    .bg-glow--pink {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(245,95,130,0.12) 0%, transparent 70%);
+      bottom: -100px; right: -50px;
+      animation: glow-drift 16s ease-in-out infinite alternate-reverse;
+    }
+    @keyframes glow-drift {
+      from { transform: translate(0, 0); }
+      to   { transform: translate(40px, 40px); }
+    }
+
+    /* ============================================================
+       LAYOUT
+    ============================================================ */
+    .page {
+      position: relative; z-index: 1;
+      width: 100%; max-width: 1600px;
+      margin: 0 auto;
+      padding: var(--space-lg) var(--space-md) var(--space-xl);
+    }
+
+    /* Kompakte zweispaltige Spielbereiche */
+    .game-row {
+      display: grid;
+      gap: var(--space-lg);
+      align-items: start;
+      margin-bottom: var(--space-lg);
+    }
+    .game-row--top    { grid-template-columns: 2fr 1fr; }
+    .game-row--bottom { grid-template-columns: 1.5fr 1fr; }
+    .page .game-row > *          { margin-bottom: 0; }
+    .page .game-row .lane:last-child { margin-bottom: 0; }
+    @media (max-width: 900px) {
+      .game-row--top, .game-row--bottom { grid-template-columns: 1fr; }
+    }
+
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--font-display); font-size: 13px; font-weight: 600;
+      color: var(--color-text-muted); text-decoration: none;
+      margin-bottom: var(--space-lg); transition: var(--transition-fast);
+    }
+    .back-link:hover { color: var(--color-primary-light); }
+
+    .game-header { text-align: center; margin-bottom: var(--space-xl); }
+    .game-header__badge {
+      display: inline-flex; align-items: center; gap: var(--space-sm);
+      background: rgba(0,0,245,0.15); border: 1px solid rgba(0,0,245,0.4);
+      border-radius: var(--radius-full); padding: var(--space-xs) var(--space-md);
+      font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--color-primary-light);
+      margin-bottom: var(--space-lg);
+    }
+    .game-header__badge-dot {
+      width: 6px; height: 6px; background: var(--color-accent-green);
+      border-radius: 50%; animation: pulse 2s ease infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.5; transform: scale(0.85); }
+    }
+    .game-header__title {
+      font-family: var(--font-display);
+      font-size: clamp(28px, 5.5vw, 44px); font-weight: 700;
+      line-height: 1.08; letter-spacing: -0.02em; margin-bottom: var(--space-md);
+    }
+    .game-header__title em { font-style: normal; color: var(--color-accent-pink); }
+    .game-header__intro {
+      font-size: 15px; color: var(--color-text-secondary);
+      max-width: 640px; margin: 0 auto; line-height: 1.8;
+    }
+
+    .panel {
+      background: var(--color-surface-1);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-lg);
+    }
+    .panel__title {
+      font-family: var(--font-display); font-size: 15px; font-weight: 700;
+      letter-spacing: 0.02em; margin-bottom: var(--space-md);
+      display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap;
+    }
+    .panel__title .sub {
+      font-family: var(--font-mono); font-size: 11px; font-weight: 400;
+      color: var(--color-text-muted); letter-spacing: 0;
+    }
+
+    /* ============================================================
+       BRIEFING
+    ============================================================ */
+    .briefing { display: grid; grid-template-columns: 1.4fr 1fr; gap: var(--space-lg); }
+    @media (max-width: 680px) { .briefing { grid-template-columns: 1fr; } }
+
+    .briefing__rules { font-size: 13.5px; color: var(--color-text-secondary); }
+    .briefing__rules li {
+      list-style: none; padding-left: 22px; position: relative; margin-bottom: 8px;
+      line-height: 1.55;
+    }
+    .briefing__rules li::before {
+      content: '♦'; position: absolute; left: 2px; top: 0;
+      color: var(--color-cyan); font-size: 10px;
+    }
+    .briefing__rules strong { color: var(--color-text-primary); }
+
+    .fleet { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); }
+    @media (max-width: 480px) { .fleet { grid-template-columns: 1fr; } }
+
+    .vehicle-card {
+      background: var(--color-map-bg);
+      border: 1px solid rgba(0, 200, 224, 0.22);
+      border-radius: var(--radius-md);
+      padding: var(--space-sm) var(--space-md);
+      display: flex; align-items: center; gap: var(--space-sm);
+    }
+    .vehicle-card__icon { font-size: 26px; flex-shrink: 0; }
+    .vehicle-card__name {
+      font-family: var(--font-display); font-weight: 700; font-size: 15px;
+    }
+    .vehicle-card__crew {
+      font-family: var(--font-mono); font-size: 12px; color: var(--color-text-muted);
+    }
+    .vehicle-card__quote {
+      font-size: 11.5px; font-style: italic; color: var(--color-accent-pink);
+    }
+
+    /* ============================================================
+       FAHRZEIT-MATRIX
+    ============================================================ */
+    .matrix-details {
+      margin-bottom: var(--space-lg);
+      background: var(--color-surface-1);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .matrix-details summary {
+      cursor: pointer; padding: var(--space-md) var(--space-lg);
+      font-family: var(--font-display); font-size: 14px; font-weight: 600;
+      list-style: none; display: flex; align-items: center; gap: var(--space-sm);
+      transition: var(--transition-fast);
+    }
+    .matrix-details summary::-webkit-details-marker { display: none; }
+    .matrix-details summary::after {
+      content: '▾'; margin-left: auto; color: var(--color-text-muted);
+      transition: transform var(--transition-fast);
+    }
+    .matrix-details[open] summary::after { transform: rotate(180deg); }
+    .matrix-details summary:hover { color: var(--color-primary-light); }
+    .matrix-body { padding: 0 var(--space-lg) var(--space-lg); overflow-x: auto; }
+    .matrix-table {
+      border-collapse: collapse; font-family: var(--font-mono); font-size: 12px;
+      width: 100%; min-width: 320px;
+    }
+    .matrix-table th, .matrix-table td {
+      padding: 4px 10px; text-align: center;
+      border: 1px solid rgba(0, 200, 224, 0.12);
+    }
+    .matrix-table th {
+      color: var(--color-cyan); font-weight: 500;
+      background: rgba(0, 200, 224, 0.06);
+    }
+    .matrix-table td { color: var(--color-text-secondary); }
+
+    /* ============================================================
+       AUFGABEN-KARTEN
+    ============================================================ */
+    .pool {
+      display: flex; flex-wrap: wrap; gap: var(--space-sm);
+      min-height: 104px;
+      border: 1px dashed var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-sm);
+      transition: var(--transition-fast);
+      position: relative;
+    }
+    .pool.drop-hover { border-color: var(--color-primary-light); background: rgba(128,128,250,0.06); }
+    .pool__empty {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono); font-size: 12px; color: var(--color-text-muted);
+      pointer-events: none;
+    }
+
+    .task-card {
+      /* Breite wird per Inline-Style aus der Auftragsdauer berechnet */
+      flex-shrink: 0;
+      background: var(--color-map-bg);
+      border: 1px solid rgba(0, 200, 224, 0.25);
+      border-radius: var(--radius-md);
+      padding: 8px 10px;
+      cursor: grab;
+      user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+      touch-action: none;
+      transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+      position: relative;
+    }
+    .task-card:hover { border-color: var(--color-border-bright); box-shadow: 0 4px 18px rgba(0,0,245,0.25); }
+    .task-card.dragging { opacity: 0.25; }
+    .task-card.ghost {
+      position: fixed; z-index: 1000; pointer-events: none;
+      opacity: 0.95; transform: rotate(2.5deg) scale(1.04);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px var(--color-border-bright);
+      cursor: grabbing;
+    }
+    .task-card__head { display: flex; align-items: center; gap: 7px; margin-bottom: 3px; }
+    .task-card__badge {
+      min-width: 22px; height: 22px; flex-shrink: 0; border-radius: 6px;
+      padding: 0 6px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono); font-weight: 700; font-size: 12px;
+      color: #041018;
+    }
+    .task-card__ort {
+      font-family: var(--font-display); font-size: 12px; font-weight: 600;
+      line-height: 1.25; color: var(--color-text-primary);
+    }
+    .task-card__job { font-size: 11px; color: var(--color-text-secondary); line-height: 1.35; margin-bottom: 4px; }
+    .task-card__meta {
+      font-family: var(--font-mono); font-size: 10.5px; color: var(--color-text-muted);
+      margin-bottom: 3px;
+    }
+    .task-card__constraint {
+      font-size: 10px; line-height: 1.4; color: var(--color-cyan);
+      border-top: 1px dashed rgba(0,200,224,0.2); padding-top: 3px;
+    }
+    .task-card--meet { border-color: rgba(0, 200, 224, 0.55); }
+    .task-card--meet.placed {
+      animation: meet-pulse 2.4s ease infinite;
+    }
+    @keyframes meet-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(0,200,224,0.0); }
+      50%       { box-shadow: 0 0 14px 1px rgba(0,200,224,0.35); }
+    }
+    .task-card__meetbadge {
+      position: absolute; top: -9px; right: 8px;
+      background: var(--color-cyan); border: 1px solid var(--color-map-bg);
+      color: #041018; border-radius: var(--radius-full);
+      font-family: var(--font-mono); font-size: 9.5px; font-weight: 700;
+      letter-spacing: 0.06em; padding: 1px 8px; text-transform: uppercase;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+    /* Farb-Emoji zu schwarzer Silhouette machen — lesbar auf dem Cyan-Badge */
+    .task-card__meetbadge .meet-ico { filter: brightness(0) saturate(0); }
+
+    .drop-placeholder {
+      /* Breite/Höhe werden beim Drag-Start von der Karte übernommen */
+      flex-shrink: 0; border-radius: var(--radius-md);
+      border: 2px dashed var(--color-primary-light);
+      background: rgba(128,128,250,0.08);
+      min-height: 86px;
+    }
+
+    /* ============================================================
+       LANES
+    ============================================================ */
+    .lane {
+      background: var(--color-surface-1);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-md) var(--space-lg);
+      margin-bottom: var(--space-md);
+    }
+    .lane__header {
+      display: flex; align-items: baseline; gap: var(--space-sm);
+      margin-bottom: var(--space-sm); flex-wrap: wrap;
+    }
+    .lane__icon { font-size: 20px; align-self: center; }
+    .lane__name { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+    .lane__crew {
+      font-family: var(--font-mono); font-size: 12px;
+      background: rgba(120,190,115,0.12); border: 1px solid rgba(120,190,115,0.35);
+      color: var(--color-accent-green); border-radius: var(--radius-full);
+      padding: 1px 10px;
+    }
+    .lane__hint { font-size: 11.5px; color: var(--color-text-muted); font-style: italic; }
+    .lane__route { display: flex; align-items: stretch; gap: var(--space-sm); }
+    .depot-chip {
+      align-self: center; flex-shrink: 0;
+      font-family: var(--font-mono); font-size: 10.5px; color: var(--color-text-muted);
+      border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+      padding: 3px 7px; white-space: nowrap;
+      background: rgba(0,0,0,0.25);
+    }
+    .lane__drop {
+      flex: 1; display: flex; gap: var(--space-sm);
+      overflow-x: auto; overflow-y: hidden;
+      min-height: 100px; padding: 6px;
+      border: 1px dashed var(--color-border);
+      border-radius: var(--radius-md);
+      transition: var(--transition-fast);
+      scrollbar-width: thin;
+      position: relative;
+    }
+    .lane__drop.drop-hover { border-color: var(--color-cyan); background: rgba(0,200,224,0.05); }
+    .lane__drop-empty {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted);
+      pointer-events: none; white-space: nowrap;
+    }
+
+    /* ============================================================
+       CONTROLS
+    ============================================================ */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-sm); padding: 14px 32px; border-radius: var(--radius-full);
+      font-family: var(--font-display); font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: var(--transition-fast);
+      border: none; text-decoration: none; letter-spacing: 0.01em; white-space: nowrap;
+    }
+    .btn--primary {
+      background: var(--color-primary); color: white;
+      box-shadow: 0 4px 24px rgba(0,0,245,0.35);
+    }
+    .btn--primary:hover {
+      background: var(--color-primary-dark);
+      box-shadow: 0 6px 32px rgba(0,0,245,0.5); transform: translateY(-1px);
+    }
+    .btn--secondary {
+      background: transparent;
+      border: 1px solid var(--color-border-bright);
+      color: var(--color-text-secondary);
+    }
+    .btn--secondary:hover { border-color: var(--color-primary-light); color: var(--color-text-primary); }
+    .btn--pink {
+      background: var(--color-accent-pink); color: white;
+      box-shadow: 0 4px 24px rgba(245,95,130,0.35);
+    }
+    .btn--pink:hover { background: #d94570; transform: translateY(-1px); }
+    .btn-group { display: flex; gap: var(--space-md); justify-content: center; flex-wrap: wrap; }
+
+    .controls { margin: var(--space-lg) 0; text-align: center; }
+    .controls__attempts {
+      margin-top: var(--space-sm);
+      font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted);
+    }
+
+    .solved-banner {
+      display: inline-block;
+      background: rgba(120,190,115,0.12);
+      border: 1px solid rgba(120,190,115,0.55);
+      color: var(--color-accent-green);
+      border-radius: var(--radius-md);
+      font-family: var(--font-display); font-weight: 600; font-size: 14px;
+      padding: 10px 18px; margin-bottom: var(--space-md);
+      box-shadow: 0 0 24px rgba(120,190,115,0.25);
+      animation: hint-in 0.5s ease both;
+    }
+    .solved-banner[hidden], .btn[hidden] { display: none; }
+
+    .hints { text-align: center; margin-bottom: var(--space-lg); }
+    .hint-chip {
+      display: inline-block; margin: 4px 6px;
+      background: rgba(255, 220, 60, 0.08); border: 1px solid rgba(255, 220, 60, 0.35);
+      color: #ffdc3c; border-radius: var(--radius-md);
+      font-size: 12.5px; padding: 8px 14px; max-width: 560px;
+      animation: hint-in 0.5s ease both;
+    }
+    @keyframes hint-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ============================================================
+       TIMELINE / GANTT
+    ============================================================ */
+    .tl-panel { background: var(--color-map-bg); border-color: rgba(0, 200, 224, 0.22); }
+    .tl { position: relative; font-family: var(--font-mono); }
+    .tl__axis { position: relative; height: 18px; margin-bottom: 4px; }
+    .tl__axis-label {
+      position: absolute; transform: translateX(-50%);
+      font-size: 10px; color: rgba(0, 200, 224, 0.55);
+      white-space: nowrap;
+    }
+    .tl__axis-label--accent { color: #ffdc3c; }
+
+    .tl__rowlabel {
+      font-family: var(--font-display); font-size: 12px; font-weight: 600;
+      color: var(--color-text-secondary); margin: 8px 0 3px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .tl__rowlabel .crew {
+      font-family: var(--font-mono); font-size: 10.5px; font-weight: 400;
+      color: var(--color-accent-green);
+    }
+    .tl__track {
+      position: relative; height: 36px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(0, 200, 224, 0.12);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .tl__tick {
+      position: absolute; top: 0; bottom: 0; width: 1px;
+      background: rgba(0, 200, 224, 0.1);
+    }
+    .tl__tick--accent { background: rgba(255, 220, 60, 0.35); }
+    .tl__meet {
+      position: absolute; top: 0; bottom: 0;
+      background: rgba(0, 200, 224, 0.08);
+      border-left: 1px dashed rgba(0,200,224,0.4);
+      border-right: 1px dashed rgba(0,200,224,0.4);
+    }
+    .tl__meet-label {
+      position: absolute; top: 1px; left: 3px;
+      font-size: 8px; color: rgba(0,200,224,0.7);
+      letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
+    }
+
+    .tlb {
+      position: absolute; top: 5px; bottom: 5px;
+      border-radius: 4px; font-size: 10px;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden; white-space: nowrap;
+    }
+    .tlb--travel, .tlb--return {
+      background: repeating-linear-gradient(
+        -45deg,
+        rgba(0,200,224,0.16) 0 5px,
+        rgba(0,200,224,0.05) 5px 10px
+      );
+      border: 1px solid rgba(0,200,224,0.25);
+      color: rgba(0,200,224,0.8);
+    }
+    .tlb--return { opacity: 0.65; }
+    .tlb--wait {
+      background: rgba(245,245,255,0.04);
+      border: 1px dotted rgba(245,245,255,0.3);
+      color: var(--color-text-muted);
+    }
+    .tlb--work { border: 1px solid; font-weight: 700; color: #041018; }
+    .tlb--task-A { background: var(--task-A); border-color: var(--task-A); }
+    .tlb--task-P { background: var(--task-P); border-color: var(--task-P); }
+    .tlb--task-E { background: var(--task-E); border-color: var(--task-E); }
+    .tlb--task-B { background: var(--task-B); border-color: var(--task-B); }
+    .tlb--task-F { background: var(--task-F); border-color: var(--task-F); }
+    .tlb--conflict {
+      background: rgba(255, 59, 59, 0.25) !important;
+      border: 1px solid #ff3b3b !important;
+      color: #ff8a8a !important;
+      animation: conflict-glow 1s ease-in-out infinite alternate;
+    }
+    @keyframes conflict-glow {
+      from { box-shadow: 0 0 4px rgba(255,59,59,0.4); }
+      to   { box-shadow: 0 0 14px rgba(255,59,59,0.85); }
+    }
+
+    .tl__empty-note {
+      text-align: center; font-family: var(--font-mono); font-size: 11.5px;
+      color: var(--color-text-muted); padding: var(--space-md) 0 var(--space-xs);
+    }
+
+    .tl-legend {
+      display: flex; flex-wrap: wrap; gap: 6px 16px;
+      margin-top: var(--space-md);
+      font-family: var(--font-mono); font-size: 10.5px; color: var(--color-text-muted);
+    }
+    .tl-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .tl-legend i {
+      width: 14px; height: 10px; border-radius: 2px; display: inline-block; font-style: normal;
+    }
+
+    .conflict-list { margin-top: var(--space-md); list-style: none; }
+    .conflict-list li {
+      font-family: var(--font-mono); font-size: 11.5px;
+      color: #ff8a8a; line-height: 1.7;
+    }
+    .conflict-list li.info { color: var(--color-text-muted); }
+
+    /* ============================================================
+       TOURENPLANERGREMIUM
+    ============================================================ */
+    .gremium {
+      display: flex; align-items: center; gap: var(--space-lg);
+      background: linear-gradient(135deg, rgba(0,0,245,0.12), rgba(245,95,130,0.08));
+      border: 1px solid var(--color-border-bright);
+      border-radius: var(--radius-lg);
+      padding: var(--space-md) var(--space-lg);
+      margin-bottom: var(--space-lg);
+      box-shadow: 0 6px 30px rgba(0,0,245,0.18);
+      position: relative;
+    }
+    .gremium::before {
+      content: '● Live-Kommentar';
+      position: absolute; top: -9px; left: var(--space-lg);
+      background: var(--color-bg);
+      padding: 0 8px;
+      font-family: var(--font-mono); font-size: 9.5px; font-weight: 500;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--color-accent-pink);
+    }
+    .gremium__side {
+      display: flex; flex-direction: column; align-items: center;
+      flex-shrink: 0;
+    }
+    .gremium__bubble {
+      flex: 1;
+      background: var(--color-surface-2);
+      border: 1px solid var(--color-border-bright);
+      border-radius: var(--radius-md);
+      padding: 14px 20px;
+      font-size: 15px; font-weight: 500; line-height: 1.5; color: var(--color-text-primary);
+      position: relative;
+      transition: border-color var(--transition-fast);
+    }
+    .gremium__bubble::after {
+      content: ''; position: absolute; left: -6px; top: 50%;
+      width: 10px; height: 10px; transform: translateY(-50%) rotate(45deg);
+      background: var(--color-surface-2);
+      border-left: 1px solid var(--color-border-bright);
+      border-bottom: 1px solid var(--color-border-bright);
+    }
+    .gremium__bubble.mood-good { border-color: rgba(120,190,115,0.7); }
+    .gremium__bubble.mood-good::after { border-color: rgba(120,190,115,0.7); }
+    .gremium__bubble.mood-bad { border-color: rgba(245,95,130,0.7); }
+    .gremium__bubble.mood-bad::after { border-color: rgba(245,95,130,0.7); }
+    .gremium__bubble.pop { animation: bubble-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    @keyframes bubble-pop {
+      0%   { transform: scale(0.92); opacity: 0.4; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .gremium__heads { display: flex; gap: 10px; }
+    .g-head {
+      width: 46px; height: 46px; border-radius: 50%;
+      background: var(--color-surface-2);
+      border: 1px solid var(--color-border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+      animation: head-bob 3.2s ease-in-out infinite;
+    }
+    .g-head:nth-child(2) { animation-delay: -1.1s; }
+    .g-head:nth-child(3) { animation-delay: -2.2s; }
+    @keyframes head-bob {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-4px); }
+    }
+    .g-head.talking {
+      border-color: var(--color-primary-light);
+      box-shadow: 0 0 14px rgba(128,128,250,0.5);
+      animation: head-talk 0.5s ease infinite alternate;
+    }
+    @keyframes head-talk {
+      from { transform: translateY(0) rotate(-3deg); }
+      to   { transform: translateY(-5px) rotate(3deg); }
+    }
+    .gremium__label {
+      font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--color-text-muted); margin-top: 5px;
+    }
+
+    /* Schwebende Gremium-Einblendung (wenn das Panel nicht im Sichtfeld ist) */
+    .g-toast {
+      position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+      z-index: 60;
+      display: flex; align-items: center; gap: 10px;
+      width: max-content; max-width: min(560px, calc(100vw - 24px));
+      background: var(--color-surface-2);
+      border: 1px solid var(--color-border-bright);
+      border-radius: var(--radius-md);
+      padding: 8px 14px;
+      font-size: 12.5px; line-height: 1.45; color: var(--color-text-secondary);
+      box-shadow: 0 10px 36px rgba(0,0,0,0.55);
+      pointer-events: none;
+      animation: bubble-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .g-toast[hidden] { display: none; }
+    .g-toast.mood-good { border-color: rgba(120,190,115,0.7); }
+    .g-toast.mood-bad  { border-color: rgba(245,95,130,0.7); }
+    .g-toast__heads { font-size: 17px; letter-spacing: 2px; flex-shrink: 0; }
+    .g-toast__close {
+      pointer-events: auto;
+      background: none; border: none; cursor: pointer;
+      color: var(--color-text-muted); font-size: 15px; line-height: 1;
+      padding: 2px 4px; flex-shrink: 0;
+    }
+    .g-toast__close:hover { color: var(--color-text-primary); }
+
+    /* ============================================================
+       ERFOLGS-OVERLAY
+    ============================================================ */
+    .success {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(3, 0, 24, 0.94);
+      backdrop-filter: blur(6px);
+      overflow-y: auto;
+      display: flex; align-items: flex-start; justify-content: center;
+      padding: var(--space-xl) var(--space-md);
+    }
+    .success[hidden] { display: none; }
+    .success__confetti { position: fixed; inset: 0; overflow: hidden; pointer-events: none; }
+    .confetti-piece {
+      position: absolute; top: -16px; width: 8px; height: 14px; border-radius: 1px;
+      animation: confetti-fall linear infinite;
+    }
+    @keyframes confetti-fall {
+      from { transform: translateY(-30px) rotate(0deg); opacity: 0.95; }
+      to   { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    }
+    .success__inner {
+      position: relative;
+      width: 100%; max-width: 760px;
+      background: var(--color-surface-1);
+      border: 1px solid var(--color-border-bright);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl) var(--space-lg);
+      text-align: center;
+      animation: success-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+    @keyframes success-in {
+      from { opacity: 0; transform: scale(0.85) translateY(30px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .success__inner::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      background: linear-gradient(90deg,
+        var(--color-primary), var(--color-accent-pink),
+        var(--color-accent-green), var(--color-primary-light));
+    }
+    .success__emoji { font-size: 44px; margin-bottom: var(--space-md); }
+    .success__heading {
+      font-family: var(--font-display);
+      font-size: clamp(26px, 5vw, 38px); font-weight: 700;
+      letter-spacing: -0.02em; margin-bottom: var(--space-md);
+    }
+    .success__gremium-row {
+      display: flex; justify-content: center; gap: 8px; margin-bottom: var(--space-sm);
+    }
+    .success__gremium-row .g-head { animation: head-talk 0.5s ease infinite alternate; }
+    .success__gremium-row .g-head:nth-child(2) { animation-delay: -0.17s; }
+    .success__gremium-row .g-head:nth-child(3) { animation-delay: -0.34s; }
+    .success__quote {
+      font-size: 14px; color: var(--color-cyan); font-style: italic;
+      margin-bottom: var(--space-lg);
+    }
+    .success__tl {
+      text-align: left;
+      background: var(--color-map-bg);
+      border: 1px solid rgba(0,200,224,0.22);
+      border-radius: var(--radius-md);
+      padding: var(--space-md);
+      margin-bottom: var(--space-lg);
+    }
+    .success__farewell {
+      font-size: 15.5px; color: var(--color-text-secondary); line-height: 1.8;
+      max-width: 560px; margin: 0 auto var(--space-xl);
+    }
+    .success__farewell strong { color: var(--color-text-primary); font-family: var(--font-display); }
+
+    /* ============================================================
+       MISC
+    ============================================================ */
+    @media (max-width: 600px) {
+      .lane { padding: var(--space-md); }
+      .gremium { flex-direction: column; gap: var(--space-sm); }
+      .gremium__bubble { width: 100%; text-align: center; }
+      .gremium__bubble::after { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--color-bg); }
+    ::-webkit-scrollbar-thumb { background: var(--color-surface-2); border-radius: 3px; }
+  </style>
+</head>
+
+<body>
+
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--blue" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--pink" aria-hidden="true"></div>
+
+  <main class="page">
+
+    <a class="back-link" href="index.html">← Zurück zur Abschiedstour</a>
+
+    <header class="game-header">
+      <div class="game-header__badge">
+        <span class="game-header__badge-dot" aria-hidden="true"></span>
+        Angewandte Betriebsmesstechnik GmbH · Einsatzleitung
+      </div>
+      <h1 class="game-header__title">Bonus-Level:<br><em>Plan die Tour!</em></h1>
+      <p class="game-header__intro">
+        Zwei Fahrzeuge, fünf Aufträge, ein Azubi voller Selbstvertrauen.
+        Ziehe die Aufträge per Drag&nbsp;&amp;&nbsp;Drop in die richtige Tour und Reihenfolge.
+        <strong>Es gibt genau eine gültige Lösung.</strong>
+      </p>
+    </header>
+
+    <!-- BRIEFING -->
+    <section class="panel briefing" aria-label="Einsatzregeln und Fahrzeuge">
+      <div>
+        <h2 class="panel__title">📋 Das Briefing</h2>
+        <ul class="briefing__rules">
+          <li>Start <strong>08:00</strong> ab Depot (D). Zu früh? <strong>Warten</strong> bis zum Fensterbeginn.</li>
+          <li><strong>Besatzung</strong> muss Personenbedarf decken. Nach Abholung des Probenehmers: <strong>+1 Person</strong>.</li>
+          <li><strong>Wasserwerk = Treffpunkt:</strong> beide bis 09:30 da, Start exakt 09:30, ≥4 Personen, nur mit dem Probenehmer.</li>
+          <li>Rückfahrt ins Depot — <strong>ohne Deadline</strong>.</li>
+        </ul>
+      </div>
+      <div>
+        <h2 class="panel__title">🔑 Der Fuhrpark</h2>
+        <div class="fleet">
+          <div class="vehicle-card">
+            <span class="vehicle-card__icon" aria-hidden="true">🚐</span>
+            <div>
+              <div class="vehicle-card__name">Sprinter</div>
+              <div class="vehicle-card__crew">Besatzung: 2 Techniker</div>
+            </div>
+          </div>
+          <div class="vehicle-card">
+            <span class="vehicle-card__icon" aria-hidden="true">🚗</span>
+            <div>
+              <div class="vehicle-card__name">Caddy</div>
+              <div class="vehicle-card__crew">Besatzung: 1 Azubi</div>
+              <div class="vehicle-card__quote">„Ich kann das!"</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ARBEITSBEREICH OBEN: Auftragspool + Fahrzeiten-Matrix -->
+    <div class="game-row game-row--top">
+      <!-- AUFGABENPOOL -->
+      <section class="panel" aria-label="Auftragspool">
+        <h2 class="panel__title">📦 Auftragspool <span class="sub">— Karten in die Touren ziehen</span></h2>
+        <div class="pool" id="pool" data-drop="pool"></div>
+      </section>
+
+      <!-- FAHRZEITEN -->
+      <details class="matrix-details" open>
+        <summary>🗺 Fahrzeiten-Matrix (Minuten, symmetrisch)</summary>
+        <div class="matrix-body">
+          <table class="matrix-table" id="matrix-table"></table>
+        </div>
+      </details>
+    </div>
+
+    <!-- TOURENPLANERGREMIUM -->
+    <section class="gremium" aria-live="polite" aria-label="Kommentare des Tourenplanergremiums">
+      <div class="gremium__side" aria-hidden="true">
+        <div class="gremium__heads">
+          <div class="g-head">🧐</div>
+          <div class="g-head">🤨</div>
+          <div class="g-head">😐</div>
+        </div>
+        <div class="gremium__label">Das Tourenplanergremium</div>
+      </div>
+      <div class="gremium__bubble" id="g-bubble">Das Gremium beobachtet. Zieh die Aufträge in die Touren — wir haben Meinungen.</div>
+    </section>
+
+    <!-- ARBEITSBEREICH UNTEN: Touren + Live-Disposition -->
+    <div class="game-row game-row--bottom">
+      <!-- LANES -->
+      <section aria-label="Tourenplanung">
+        <div class="lane" data-vehicle="sprinter">
+          <div class="lane__header">
+            <span class="lane__icon" aria-hidden="true">🚐</span>
+            <span class="lane__name">Tour Sprinter</span>
+            <span class="lane__crew" id="crew-sprinter">👥 2</span>
+            <span class="lane__hint">2 Techniker an Bord</span>
+          </div>
+          <div class="lane__route">
+            <span class="depot-chip">D<br>08:00</span>
+            <div class="lane__drop" data-drop="sprinter" id="drop-sprinter"></div>
+            <span class="depot-chip">D</span>
+          </div>
+        </div>
+        <div class="lane" data-vehicle="caddy">
+          <div class="lane__header">
+            <span class="lane__icon" aria-hidden="true">🚗</span>
+            <span class="lane__name">Tour Caddy</span>
+            <span class="lane__crew" id="crew-caddy">👥 1</span>
+            <span class="lane__hint">Nur der Azubi. „Ich kann das!"</span>
+          </div>
+          <div class="lane__route">
+            <span class="depot-chip">D<br>08:00</span>
+            <div class="lane__drop" data-drop="caddy" id="drop-caddy"></div>
+            <span class="depot-chip">D</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- TIMELINE -->
+      <section class="panel tl-panel" aria-label="Live-Disposition">
+        <h2 class="panel__title" style="color: var(--color-text-primary);">📊 Live-Disposition <span class="sub">— rechnet bei jedem Drop mit</span></h2>
+        <div id="timeline"></div>
+        <div class="tl-legend">
+          <span><i style="background:repeating-linear-gradient(-45deg, rgba(0,200,224,0.4) 0 3px, rgba(0,200,224,0.1) 3px 6px);"></i> Fahrt</span>
+          <span><i style="border:1px dotted rgba(245,245,255,0.5);"></i> Wartezeit</span>
+          <span><i style="background:var(--color-accent-green);"></i> Arbeit</span>
+          <span><i style="background:rgba(255,59,59,0.4);border:1px solid #ff3b3b;"></i> Konflikt</span>
+          <span><i style="background:rgba(0,200,224,0.25);border:1px dashed rgba(0,200,224,0.6);"></i> Treffpunkt-Fenster</span>
+        </div>
+        <ul class="conflict-list" id="conflict-list"></ul>
+      </section>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="controls">
+      <div class="solved-banner" id="solved-banner" hidden>✅ Tour genehmigt — einstimmig! Alle Fenster getroffen, niemand muss übernachten.</div>
+      <div class="btn-group">
+        <button class="btn btn--primary" id="btn-start">🚦 Tour prüfen</button>
+        <button class="btn btn--secondary" id="btn-reset">↺ Zurücksetzen</button>
+      </div>
+      <div class="controls__attempts" id="attempts-info"></div>
+    </div>
+
+    <div class="hints" id="hints"></div>
+
+  </main>
+
+  <!-- SCHWEBENDE GREMIUM-EINBLENDUNG -->
+  <div class="g-toast" id="g-toast" hidden aria-hidden="true">
+    <span class="g-toast__heads">🧐🤨😐</span>
+    <span class="g-toast__text" id="g-toast-text"></span>
+    <button class="g-toast__close" id="g-toast-close" aria-label="Kommentar ausblenden">✕</button>
+  </div>
+
+  <!-- ERFOLGS-OVERLAY -->
+  <div class="success" id="success" hidden>
+    <div class="success__confetti" id="success-confetti" aria-hidden="true"></div>
+    <div class="success__inner">
+      <div class="success__emoji" aria-hidden="true">🎉🚐🚗🎉</div>
+      <h2 class="success__heading">Tour genehmigt!</h2>
+      <div class="success__gremium-row" aria-hidden="true">
+        <div class="g-head">🧐</div>
+        <div class="g-head">🤨</div>
+        <div class="g-head">😐</div>
+      </div>
+      <p class="success__quote">Das Tourenplanergremium, einstimmig: „Genehmigt. Einstimmig. Das gab es hier noch nie."</p>
+      <div class="success__tl" id="success-timeline"></div>
+      <p class="success__farewell" id="success-farewell"></p>
+      <div class="btn-group">
+        <a class="btn btn--pink" id="btn-back-tour"
+           href="data/KI-Experte _ AI Solution Architect (m_w_d) _ ABM-Mess Service GmbH _ 350.pdf"
+           target="_blank" rel="noopener noreferrer">🚛 Zurück zur Abschiedstour</a>
+        <a class="btn btn--secondary" id="btn-back-honest" href="index.html" hidden>Ohne Bewerbung zurück zur Tour.</a>
+        <button class="btn btn--secondary" id="btn-close-success">Plan nochmal ansehen</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * ================================================================
+     * TOURENPLANUNGS-RÄTSEL
+     * ================================================================
+     * Die Rätseldaten sind per Brute-Force verifiziert: exakt EINE
+     * gültige Lösung. Zahlen, Zeitfenster und Fahrzeiten NICHT ändern!
+     * ================================================================
+     */
+
+    // ============ NAME HIER EINSETZEN ==============================
+    const FAREWELL_NAME = "Joachim";
+    // ===============================================================
+
+    // ================================================================
+    //  ZENTRALES DATENOBJEKT (Insider-Namen hier austauschbar)
+    // ================================================================
+
+    const GAME = {
+      firma: "Angewandte Betriebsmesstechnik GmbH",
+      start: 480,          // 08:00 — Abfahrt beider Fahrzeuge am Depot
+      eStart: 570,         // 09:30 — Leitung drucklos, Arbeitsbeginn Wasserwerk
+
+      orte: {
+        D: "Depot",
+        A: "Wohnanlage Krümelweg (Altstadt)",
+        P: "Park & Ride Nord",
+        E: "Wasserwerk (Stadtwerke, Zentrum)",
+        B: "Außenlager (Gewerbepark Ost)",
+        F: "Berger Immobilien (Gewerbepark Ost)",
+      },
+
+      tasks: {
+        A: {
+          abk: "WK",
+          ort: "Wohnanlage Krümelweg", teil: "Altstadt",
+          job: "Rauchmelder warten & Heizungszähler ablesen",
+          dauer: 30, personen: 2, latestStart: 525, // 08:45
+          hinweis: "Arbeitsbeginn bis 08:45 — dann ist der Hausmeister mit dem Generalschlüssel weg",
+        },
+        P: {
+          abk: "PR",
+          ort: "Park & Ride Nord", teil: "",
+          job: "Probenehmer abholen",
+          dauer: 5, personen: 1, earliestStart: 510, // 08:30
+          pickup: true,
+          hinweis: "Zug kommt 08:30 · danach +1 Person · nur der Probenehmer ist für Trinkwasserproben zertifiziert",
+        },
+        E: {
+          abk: "W",
+          ort: "Wasserwerk", teil: "Stadtwerke, Zentrum",
+          job: "Hauptwasserzähler tauschen & Trinkwasserprobe nehmen",
+          dauer: 45, personenGesamt: 4, rendezvous: true,
+          hinweis: "Treffpunkt: beide Fahrzeuge bis 09:30 · 4 Personen gesamt · nur mit dem Probenehmer",
+        },
+        B: {
+          abk: "AL",
+          ort: "Außenlager", teil: "Gewerbepark Ost",
+          job: "Palette Austauschzähler laden (500 kg)",
+          dauer: 10, personen: 2, nurSprinter: true,
+          hinweis: "Passt wegen Zuladung NUR in den Sprinter",
+        },
+        F: {
+          abk: "BI",
+          ort: "Berger Immobilien", teil: "Gewerbepark Ost",
+          job: "Strom- & Wasserzähler strangweise tauschen",
+          dauer: 40, personen: 2, earliestStart: 630, latestEnd: 720, // 10:30–12:00
+          braucht: "B",
+          hinweis: "Wasser ist nur 10:30–12:00 abgestellt · Austauschzähler müssen an Bord sein",
+        },
+      },
+
+      // Fahrzeiten in Minuten, symmetrisch
+      travel: {
+        D: { D: 0,  A: 15, P: 15, E: 20, B: 20, F: 25 },
+        A: { D: 15, A: 0,  P: 25, E: 12, B: 25, F: 25 },
+        P: { D: 15, A: 25, P: 0,  E: 20, B: 25, F: 25 },
+        E: { D: 20, A: 12, P: 20, E: 0,  B: 15, F: 15 },
+        B: { D: 20, A: 25, P: 25, E: 15, B: 0,  F: 5  },
+        F: { D: 25, A: 25, P: 25, E: 15, B: 5,  F: 0  },
+      },
+
+      vehicles: {
+        sprinter: { name: "Sprinter", icon: "🚐", crew: 2 },
+        caddy:    { name: "Caddy",    icon: "🚗", crew: 1 },
+      },
+
+      // Die eindeutige Lösung — nur intern für die Gremium-Einstufung.
+      solution: {
+        sprinter: ["A", "E", "B", "F"],
+        caddy:    ["P", "E"],
+      },
+    };
+
+    const ALL_TASKS = ["A", "P", "E", "B", "F"];
+
+    // ================================================================
+    //  GREMIUM-TEXTE
+    // ================================================================
+
+    const POOL_RIGHT = [
+      "Das haben wir schon immer so gemacht.",
+      "Also bisher haben wir das ja als Übernachtungstour gemacht.",
+      "Wenn man die Nebenbedingungen ignoriert, geht es aber schneller.",
+    ];
+
+    const POOL_WRONG = [
+      "Hmm. Da stimmt was nicht.",
+      "Ich wusste schon immer, dass das nichts wird.",
+    ];
+
+    const POOL_NEUTRAL = [
+      "Zurück ins Depot damit. Verstehen wir. Respektieren wir.",
+      "Rückabwicklung. Der Klassiker der Tourenplanung.",
+    ];
+
+    const IDLE_LINES = [
+      "Warum dauert das denn so lange?",
+      "Da bin ich ja von Hand schneller.",
+      "Wir haben auch noch andere Touren zu planen.",
+      "Sollen wir schon mal Kaffee kochen?",
+      "Der Sprinter wird auch nicht jünger.",
+    ];
+
+    const SPECIFIC = {
+      "azubi-allein": "Der Azubi schaut den Werkzeugkoffer an. Der Werkzeugkoffer schaut zurück. Es bleibt bei Blickkontakt.",
+      "b-im-caddy":   "500 Kilo im Caddy. Die Hinterachse hat bereits gekündigt.",
+      "f-ohne-b":     "Zähler tauschen ohne Austauschzähler. Womit? Mit Optimismus?",
+      "e-zu-spaet":   "Die Leitung steht wieder unter Druck. Der Betreiber schaut auf die Uhr. Dann auf euch. Dann wieder auf die Uhr.",
+      "e-personen":   "Der Betreiber zählt laut: eins, zwei, drei. Er schüttelt den Kopf. Vorschrift ist Vorschrift.",
+      "e-ohne-m":     "Kowalski am Werkstor: „Wo ist der Probenehmer? Ohne den läuft hier gar nichts.“",
+      "a-zu-spaet":   "Der Hausmeister ist weg — und mit ihm der Generalschlüssel. Vor verschlossenen Türen liest es sich schlecht ab.",
+      "p-zu-frueh":   "Der Zug kommt 08:30. Bahn-Pünktlichkeit ist hier ausnahmsweise als gegeben anzunehmen.",
+      "f-fenster":    "Das Wasser läuft wieder. Man tauscht keinen Zähler unter Druck. Das steht bestimmt irgendwo.",
+    };
+
+    const HINTS = [
+      "Tipp vom Gremium: Was kann der Azubi eigentlich ganz alleine?",
+      "Tipp vom Gremium: Müssen die Austauschzähler wirklich VOR dem Wasserwerk ins Auto? Das Lager liegt praktisch neben Berger.",
+    ];
+
+    // ================================================================
+    //  HELPERS
+    // ================================================================
+
+    const $ = (id) => document.getElementById(id);
+    const fmt = (m) =>
+      String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
+
+    // Anzeige-Kürzel (WK, PR, W, AL, BI); Depot bleibt "D".
+    const abk = (id) => (GAME.tasks[id] && GAME.tasks[id].abk) || id;
+
+    function pick(pool, exclude) {
+      const candidates = pool.filter((t) => t !== exclude);
+      return candidates[Math.floor(Math.random() * candidates.length)];
+    }
+
+    // ================================================================
+    //  SIMULATIONS-ENGINE
+    //  Implementiert die Regeln generisch — Timeline und Konflikte
+    //  werden aus dem Plan abgeleitet, nichts ist hart codiert.
+    // ================================================================
+
+    function simulate(plan) {
+      const V = ["sprinter", "caddy"];
+      const segs = { sprinter: [], caddy: [] };
+      const conflicts = [];
+      const st = {};
+      let eWindow = null;
+
+      const addC = (code, taskId, vehicle, msg, info = false) =>
+        conflicts.push({ code, taskId, vehicle, msg, info });
+
+      for (const v of V) {
+        st[v] = {
+          t: GAME.start, loc: "D",
+          crew: GAME.vehicles[v].crew,
+          hasM: false, done: new Set(),
+        };
+      }
+
+      function driveTo(v, dest) {
+        const s = st[v];
+        const tt = GAME.travel[s.loc][dest];
+        if (tt > 0) segs[v].push({ type: "travel", from: s.t, to: s.t + tt, a: s.loc, b: dest });
+        s.t += tt;
+        s.loc = dest;
+        return s.t;
+      }
+
+      function doTask(v, id) {
+        const s = st[v];
+        const task = GAME.tasks[id];
+        const vName = GAME.vehicles[v].name;
+        const arrive = driveTo(v, id);
+        let start = arrive;
+
+        if (task.earliestStart != null && start < task.earliestStart) {
+          segs[v].push({ type: "wait", from: start, to: task.earliestStart, at: id });
+          if (id === "P") {
+            addC("p-zu-frueh", id, v,
+              `${vName} wartet am P&R (Ankunft ${fmt(arrive)}, Zug kommt 08:30)`, true);
+          }
+          start = task.earliestStart;
+        }
+        const end = start + task.dauer;
+
+        if (task.latestStart != null && start > task.latestStart) {
+          addC("a-zu-spaet", id, v,
+            `${task.ort}: Arbeitsbeginn ${fmt(start)} — zu spät (spätestens ${fmt(task.latestStart)})`);
+        }
+        if (task.latestEnd != null && end > task.latestEnd) {
+          addC("f-fenster", id, v,
+            `${task.ort}: Arbeit endet erst ${fmt(end)} — ab ${fmt(task.latestEnd)} ist das Wasser wieder an`);
+        }
+        if (task.nurSprinter && v !== "sprinter") {
+          addC("b-im-caddy", id, v,
+            `${task.job}: 500 kg passen nicht in den ${vName} (nur Sprinter)`);
+        }
+        if (task.personen != null && s.crew < task.personen) {
+          addC("azubi-allein", id, v,
+            `${task.ort}: nur ${s.crew} Person(en) im ${vName}, benötigt ${task.personen}`);
+        }
+        if (task.braucht && !s.done.has(task.braucht)) {
+          addC("f-ohne-b", id, v,
+            `${task.ort}: Austauschzähler nicht an Bord — Stopp ${abk("B")} muss vorher im selben Fahrzeug liegen`);
+        }
+
+        segs[v].push({ type: "work", from: start, to: end, at: id });
+        s.t = end;
+        s.done.add(id);
+        if (task.pickup) { s.crew += 1; s.hasM = true; }
+      }
+
+      // Sequenzen an E (Rendezvous) auftrennen
+      const pre = {}, post = {}, hasE = {};
+      for (const v of V) {
+        const seq = plan[v];
+        const i = seq.indexOf("E");
+        hasE[v] = i >= 0;
+        pre[v]  = i >= 0 ? seq.slice(0, i) : seq.slice();
+        post[v] = i >= 0 ? seq.slice(i + 1) : [];
+      }
+
+      // Phase 1: alles vor E
+      for (const v of V) for (const id of pre[v]) doTask(v, id);
+
+      // Phase 2: Rendezvous am Wasserwerk
+      const present = V.filter((v) => hasE[v]);
+      if (present.length) {
+        let startE = GAME.eStart;
+        const arr = {};
+        for (const v of present) {
+          arr[v] = driveTo(v, "E");
+          if (arr[v] > GAME.eStart) {
+            addC("e-zu-spaet", "E", v,
+              `${GAME.tasks.E.ort}: ${GAME.vehicles[v].name} kommt erst ${fmt(arr[v])} an — Leitung ist nur ab 09:30 drucklos`);
+          }
+          startE = Math.max(startE, arr[v]);
+        }
+        for (const v of present) {
+          if (arr[v] < startE) segs[v].push({ type: "wait", from: arr[v], to: startE, at: "E" });
+        }
+        const totalCrew = present.reduce((a, v) => a + st[v].crew, 0);
+        const mThere = present.some((v) => st[v].hasM);
+        if (totalCrew < GAME.tasks.E.personenGesamt) {
+          addC("e-personen", "E", null,
+            `${GAME.tasks.E.ort}: nur ${totalCrew} Person(en) vor Ort — benötigt ${GAME.tasks.E.personenGesamt}`);
+        }
+        if (!mThere) {
+          addC("e-ohne-m", "E", null,
+            `${GAME.tasks.E.ort}: Der Probenehmer ist nicht dabei — kein Zutritt, keine Probenahme`);
+        }
+        const endE = startE + GAME.tasks.E.dauer;
+        for (const v of present) {
+          segs[v].push({ type: "work", from: startE, to: endE, at: "E" });
+          st[v].t = endE;
+          st[v].loc = "E";
+          st[v].done.add("E");
+        }
+        eWindow = { from: startE, to: endE };
+      }
+
+      // Phase 3: alles nach E
+      for (const v of V) for (const id of post[v]) doTask(v, id);
+
+      // Rückfahrt zum Depot (keine Deadline)
+      for (const v of V) {
+        if (!plan[v].length) continue;
+        const s = st[v];
+        const tt = GAME.travel[s.loc]["D"];
+        if (tt > 0) segs[v].push({ type: "return", from: s.t, to: s.t + tt, a: s.loc, b: "D" });
+        s.t += tt;
+        s.loc = "D";
+      }
+
+      const complete = ALL_TASKS.every(
+        (id) => plan.sprinter.includes(id) || plan.caddy.includes(id)
+      );
+
+      return { segments: segs, conflicts, eWindow, complete, endState: st };
+    }
+
+    // ================================================================
+    //  SPIELZUSTAND
+    // ================================================================
+
+    const state = {
+      pool: ALL_TASKS.slice(),
+      plan: { sprinter: [], caddy: [] },
+      attempts: 0,
+      wrongMoves: 0,
+      solved: false,
+    };
+    let lastComment = null;
+
+    // ================================================================
+    //  GREMIUM-EINSTUFUNG
+    // ================================================================
+
+    // Karte in korrektem Fahrzeug UND in korrekter Reihenfolge relativ
+    // zu den bereits platzierten (korrekt einsortierten) Karten?
+    function isDropCompatible(id, lane) {
+      const sol = GAME.solution[lane];
+      const si = sol.indexOf(id);
+      if (si < 0) return false;
+      const arr = state.plan[lane];
+      const pi = arr.indexOf(id);
+      for (let j = 0; j < arr.length; j++) {
+        if (j === pi) continue;
+        const so = sol.indexOf(arr[j]);
+        if (so < 0) continue; // falsch einsortierte Fremdkarte ignorieren
+        if ((j < pi) !== (so < si)) return false;
+      }
+      return true;
+    }
+
+    function say(text, mood = "neutral") {
+      const bubble = $("g-bubble");
+      bubble.textContent = text;
+      bubble.className = "gremium__bubble mood-" + mood;
+      void bubble.offsetWidth;
+      bubble.classList.add("pop");
+      document.querySelectorAll(".gremium .g-head").forEach((h) => h.classList.remove("talking"));
+      const heads = document.querySelectorAll(".gremium .g-head");
+      heads[Math.floor(Math.random() * heads.length)].classList.add("talking");
+      lastComment = text;
+      showToast(text, mood);
+      resetIdleTimer();
+    }
+
+    // ----------------------------------------------------------------
+    // Schwebende Einblendung über den Swimlanes: erscheint, wenn das
+    // Gremium-Panel gerade nicht im Sichtfeld ist, und bleibt 5 Minuten.
+    // ----------------------------------------------------------------
+    const GREMIUM_TOAST_MS = 5 * 60 * 1000; // 5 Minuten
+    let toastTimer = null;
+
+    function gremiumPanelVisible() {
+      const el = document.querySelector(".gremium");
+      if (!el) return false;
+      const r = el.getBoundingClientRect();
+      return r.top < window.innerHeight - 30 && r.bottom > 30;
+    }
+
+    function showToast(text, mood) {
+      if (gremiumPanelVisible()) { hideToast(); return; }
+      const toast = $("g-toast");
+      $("g-toast-text").textContent = text;
+      toast.className = "g-toast mood-" + mood;
+      toast.hidden = false;
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(hideToast, GREMIUM_TOAST_MS);
+    }
+
+    function hideToast() {
+      $("g-toast").hidden = true;
+      if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+    }
+
+    // ----------------------------------------------------------------
+    // Ungeduld: Tut der Nutzer eine Weile nichts, wird das Gremium laut.
+    // Jede Aktivität (Drag, Drop, Reset) startet den Timer neu.
+    // ----------------------------------------------------------------
+    const IDLE_MS = 22 * 1000; // 22 Sekunden ohne Aktion
+    let idleTimer = null;
+
+    function fireIdle() {
+      if (state.solved) return;
+      const text = pick(IDLE_LINES, lastComment) || IDLE_LINES[0];
+      say(text, "bad"); // say() startet den Timer neu — es wird weiter gemeckert
+    }
+
+    function resetIdleTimer() {
+      if (idleTimer) clearTimeout(idleTimer);
+      if (state.solved) return;
+      idleTimer = setTimeout(fireIdle, IDLE_MS);
+    }
+
+    const conflictKey = (c) => `${c.code}|${c.taskId}|${c.vehicle}`;
+
+    function commentOnDrop(droppedId, targetLane, prevSim, curSim) {
+      // Drop zurück in den Pool: kleiner neutraler Kommentar
+      if (targetLane === "pool") {
+        say(pick(POOL_NEUTRAL, lastComment) || POOL_NEUTRAL[0], "neutral");
+        return;
+      }
+
+      const prevKeys = new Set(prevSim.conflicts.filter((c) => !c.info).map(conflictKey));
+      const newErrs = curSim.conflicts.filter((c) => !c.info && !prevKeys.has(conflictKey(c)));
+      const compatible = isDropCompatible(droppedId, targetLane);
+      const wrong = !compatible || newErrs.length > 0;
+
+      // Konkrete Constraint-Kommentare gibt es erst nach 2 falschen Zügen
+      const specificsUnlocked = state.wrongMoves >= 2;
+      if (wrong) state.wrongMoves += 1;
+
+      let text = null;
+      if (newErrs.length && specificsUnlocked) {
+        // Konkreter Konflikt hat Vorrang vor den generischen Pools
+        const pref = newErrs.find((c) => c.taskId === droppedId) || newErrs[0];
+        text = SPECIFIC[pref.code];
+      } else if (!wrong && droppedId === "P" && curSim.conflicts.some((c) => c.code === "p-zu-frueh")) {
+        text = SPECIFIC["p-zu-frueh"];
+      }
+
+      if (!text || text === lastComment) {
+        text = pick(wrong ? POOL_WRONG : POOL_RIGHT, lastComment);
+      }
+      say(text, wrong ? "bad" : "good");
+    }
+
+    // ================================================================
+    //  RENDERING — Karten, Pool, Lanes
+    // ================================================================
+
+    // Kachelbreite wächst mit der benötigten Zeit (5 min → ~113px, 45 min → ~181px)
+    function taskCardWidth(id) {
+      return Math.round(104 + GAME.tasks[id].dauer * 1.7);
+    }
+
+    function taskCardHTML(id, inLane) {
+      const t = GAME.tasks[id];
+      const persons = t.personenGesamt != null ? `${t.personenGesamt} gesamt` : `${t.personen}`;
+      const meet = t.rendezvous;
+      return `
+        <div class="task-card ${meet ? "task-card--meet" : ""} ${meet && inLane ? "placed" : ""}"
+             style="width:${taskCardWidth(id)}px"
+             data-id="${id}" ${inLane ? `data-lane="${inLane}"` : ""}>
+          ${meet ? `<span class="task-card__meetbadge"><span class="meet-ico">🔗</span> Treffpunkt</span>` : ""}
+          <div class="task-card__head">
+            <span class="task-card__badge" style="background: var(--task-${id});">${abk(id)}</span>
+            <span class="task-card__ort">${t.ort}${t.teil ? `<br><span style="font-weight:400;color:var(--color-text-muted);font-size:10px;">${t.teil}</span>` : ""}</span>
+          </div>
+          <div class="task-card__job">${t.job}</div>
+          <div class="task-card__meta">⏱ ${t.dauer} min · 👥 ${persons}</div>
+          <div class="task-card__constraint">${t.hinweis}</div>
+        </div>`;
+    }
+
+    function renderCards() {
+      const pool = $("pool");
+      pool.innerHTML =
+        state.pool.map((id) => taskCardHTML(id, null)).join("") +
+        (state.pool.length ? "" : `<div class="pool__empty">Alle Aufträge verplant. Das Gremium ist nervös.</div>`);
+
+      for (const v of ["sprinter", "caddy"]) {
+        const drop = $("drop-" + v);
+        drop.innerHTML =
+          state.plan[v].map((id) => taskCardHTML(id, v)).join("") +
+          (state.plan[v].length ? "" : `<div class="lane__drop-empty">Aufträge hierher ziehen</div>`);
+      }
+
+      document.querySelectorAll(".task-card:not(.ghost)").forEach((el) => {
+        el.addEventListener("pointerdown", onCardPointerDown);
+      });
+
+      // Personenzähler
+      const crewLabel = (v) => {
+        const base = GAME.vehicles[v].crew;
+        return state.plan[v].includes("P") ? `👥 ${base} → ${base + 1} (mit Probenehmer)` : `👥 ${base}`;
+      };
+      $("crew-sprinter").textContent = crewLabel("sprinter");
+      $("crew-caddy").textContent = crewLabel("caddy");
+    }
+
+    // ================================================================
+    //  RENDERING — Timeline / Gantt
+    // ================================================================
+
+    function renderTimelineInto(host, sim) {
+      const V = ["sprinter", "caddy"];
+      let maxT = 760; // mind. bis 12:40
+      V.forEach((v) => sim.segments[v].forEach((s) => { maxT = Math.max(maxT, s.to + 10); }));
+      const start = GAME.start;
+      const end = Math.ceil(maxT / 30) * 30;
+      const span = end - start;
+      const pct = (t) => (((t - start) / span) * 100).toFixed(3);
+      const width = (a, b) => ((b - a) / span * 100);
+
+      // Fehlerhafte Stopps markieren (vehicle=null ⇒ beide E-Blöcke)
+      const errKeys = new Set();
+      sim.conflicts.filter((c) => !c.info).forEach((c) => {
+        if (c.vehicle) errKeys.add(c.vehicle + "|" + c.taskId);
+        else V.forEach((v) => errKeys.add(v + "|" + c.taskId));
+      });
+
+      let html = `<div class="tl">`;
+
+      // Achse
+      html += `<div class="tl__axis">`;
+      for (let t = start; t <= end; t += 60) {
+        html += `<span class="tl__axis-label" style="left:${pct(t)}%">${fmt(t)}</span>`;
+      }
+      html += `<span class="tl__axis-label tl__axis-label--accent" style="left:${pct(GAME.eStart)}%;top:9px;">▾09:30</span>`;
+      html += `</div>`;
+
+      const ticksHTML = (() => {
+        let s = "";
+        for (let t = start; t <= end; t += 60) s += `<div class="tl__tick" style="left:${pct(t)}%"></div>`;
+        s += `<div class="tl__tick tl__tick--accent" style="left:${pct(GAME.eStart)}%"></div>`;
+        return s;
+      })();
+
+      const meetHTML = sim.eWindow
+        ? `<div class="tl__meet" style="left:${pct(sim.eWindow.from)}%;width:${width(sim.eWindow.from, sim.eWindow.to).toFixed(3)}%"><span class="tl__meet-label">Treffpunkt</span></div>`
+        : "";
+
+      for (const v of V) {
+        const base = GAME.vehicles[v].crew;
+        const crew = state.plan[v].includes("P") ? `👥 ${base}→${base + 1}` : `👥 ${base}`;
+        html += `<div class="tl__rowlabel">${GAME.vehicles[v].icon} ${GAME.vehicles[v].name} <span class="crew">${crew}</span></div>`;
+        html += `<div class="tl__track">${ticksHTML}${meetHTML}`;
+        for (const s of sim.segments[v]) {
+          const w = width(s.from, s.to);
+          const style = `left:${pct(s.from)}%;width:${w.toFixed(3)}%;`;
+          if (s.type === "work") {
+            const conflict = errKeys.has(v + "|" + s.at);
+            const t = GAME.tasks[s.at];
+            const title = `${t.ort}: ${t.job} · ${fmt(s.from)}–${fmt(s.to)}`;
+            html += `<div class="tlb tlb--work tlb--task-${s.at} ${conflict ? "tlb--conflict" : ""}" style="${style}" title="${title}">${abk(s.at)}${conflict ? " ⚠" : ""}</div>`;
+          } else if (s.type === "wait") {
+            const title = `Warten bei ${abk(s.at)} · ${fmt(s.from)}–${fmt(s.to)}`;
+            html += `<div class="tlb tlb--wait" style="${style}" title="${title}">${w > 5 ? "⏳" : ""}</div>`;
+          } else {
+            const title = `${s.type === "return" ? "Rückfahrt" : "Fahrt"} ${abk(s.a)} → ${abk(s.b)} · ${fmt(s.from)}–${fmt(s.to)}`;
+            html += `<div class="tlb tlb--${s.type}" style="${style}" title="${title}">${w > 7 ? `${abk(s.a)}→${abk(s.b)}` : ""}</div>`;
+          }
+        }
+        html += `</div>`;
+      }
+      html += `</div>`;
+
+      if (!state.plan.sprinter.length && !state.plan.caddy.length) {
+        html += `<div class="tl__empty-note">Noch keine Aufträge geplant — die Disposition langweilt sich.</div>`;
+      }
+      host.innerHTML = html;
+    }
+
+    function renderConflicts(sim) {
+      const list = $("conflict-list");
+      const items = [];
+      sim.conflicts.forEach((c) => {
+        if (c.info) items.push(`<li class="info">ℹ ${c.msg}</li>`);
+        else items.push(`<li>⚠ ${c.msg}</li>`);
+      });
+      list.innerHTML = items.join("");
+    }
+
+    function renderAll() {
+      renderCards();
+      const sim = simulate(state.plan);
+      renderTimelineInto($("timeline"), sim);
+      renderConflicts(sim);
+      return sim;
+    }
+
+    // ================================================================
+    //  DRAG & DROP (Pointer Events — Maus + Touch)
+    // ================================================================
+
+    let drag = null;
+
+    function onCardPointerDown(e) {
+      if (e.button != null && e.button !== 0) return;
+      if (state.solved) return;
+      resetIdleTimer(); // Anfassen zählt als Aktivität
+      const card = e.currentTarget;
+      drag = {
+        id: card.dataset.id,
+        fromLane: card.dataset.lane || null, // null = Pool
+        card,
+        startX: e.clientX,
+        startY: e.clientY,
+        offsetX: 0, offsetY: 0,
+        started: false,
+        ghost: null,
+        placeholder: null,
+        target: null, // {lane:'sprinter'|'caddy'|'pool', index}
+      };
+      document.addEventListener("pointermove", onDragMove, { passive: false });
+      document.addEventListener("pointerup", onDragEnd);
+      document.addEventListener("pointercancel", onDragCancel);
+    }
+
+    function startDrag(e) {
+      const rect = drag.card.getBoundingClientRect();
+      drag.offsetX = e.clientX - rect.left;
+      drag.offsetY = e.clientY - rect.top;
+
+      const ghost = drag.card.cloneNode(true);
+      ghost.classList.add("ghost");
+      ghost.classList.remove("dragging");
+      ghost.style.width = rect.width + "px";
+      document.body.appendChild(ghost);
+      drag.ghost = ghost;
+
+      drag.card.classList.add("dragging");
+
+      const ph = document.createElement("div");
+      ph.className = "drop-placeholder";
+      ph.style.minHeight = rect.height + "px";
+      ph.style.width = rect.width + "px";
+      drag.placeholder = ph;
+
+      hideToast(); // Einblendung nicht im Weg beim Ziehen
+      drag.started = true;
+    }
+
+    function positionGhost(e) {
+      drag.ghost.style.left = e.clientX - drag.offsetX + "px";
+      drag.ghost.style.top = e.clientY - drag.offsetY + "px";
+    }
+
+    function calcInsertIndex(container, x, y) {
+      const cards = [...container.querySelectorAll(".task-card")].filter(
+        (c) => !c.classList.contains("dragging")
+      );
+      for (let i = 0; i < cards.length; i++) {
+        const r = cards[i].getBoundingClientRect();
+        if (y < r.top - 4) return i;
+        if (y <= r.bottom + 4 && x < r.left + r.width / 2) return i;
+      }
+      return cards.length;
+    }
+
+    function onDragMove(e) {
+      if (!drag) return;
+      if (!drag.started) {
+        const dist = Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY);
+        if (dist < 6) return;
+        startDrag(e);
+      }
+      e.preventDefault();
+      positionGhost(e);
+
+      const below = document.elementFromPoint(e.clientX, e.clientY);
+      const zone = below ? below.closest("[data-drop]") : null;
+
+      document.querySelectorAll("[data-drop]").forEach((z) => z.classList.remove("drop-hover"));
+      if (drag.placeholder.parentNode) drag.placeholder.remove();
+      drag.target = null;
+
+      if (!zone) return;
+      const laneName = zone.dataset.drop;
+
+      // E darf nicht von einer Lane in die andere gezogen werden
+      // (es existiert ja bereits in beiden) — nur umsortieren oder zurück in den Pool.
+      if (drag.id === "E" && drag.fromLane && laneName !== "pool" && laneName !== drag.fromLane) return;
+
+      zone.classList.add("drop-hover");
+      if (laneName === "pool") {
+        drag.target = { lane: "pool", index: 0 };
+      } else {
+        const index = calcInsertIndex(zone, e.clientX, e.clientY);
+        const cards = [...zone.querySelectorAll(".task-card")].filter(
+          (c) => !c.classList.contains("dragging")
+        );
+        zone.insertBefore(drag.placeholder, cards[index] || null);
+        drag.target = { lane: laneName, index };
+      }
+    }
+
+    function cleanupDrag() {
+      if (drag.ghost) drag.ghost.remove();
+      if (drag.placeholder && drag.placeholder.parentNode) drag.placeholder.remove();
+      drag.card.classList.remove("dragging");
+      document.querySelectorAll("[data-drop]").forEach((z) => z.classList.remove("drop-hover"));
+      document.removeEventListener("pointermove", onDragMove);
+      document.removeEventListener("pointerup", onDragEnd);
+      document.removeEventListener("pointercancel", onDragCancel);
+      drag = null;
+    }
+
+    function onDragCancel() {
+      if (drag) cleanupDrag();
+    }
+
+    function onDragEnd() {
+      if (!drag) return;
+      const { id, fromLane, target, started } = drag;
+      cleanupDragKeep(); // Ghost etc. entfernen, aber Daten behalten
+      if (!started || !target) { renderCards(); return; }
+      commitDrop(id, fromLane, target);
+    }
+
+    // wie cleanupDrag, aber ohne drag=null zu setzen bevor Werte gelesen wurden
+    function cleanupDragKeep() {
+      if (drag.ghost) drag.ghost.remove();
+      if (drag.placeholder && drag.placeholder.parentNode) drag.placeholder.remove();
+      drag.card.classList.remove("dragging");
+      document.querySelectorAll("[data-drop]").forEach((z) => z.classList.remove("drop-hover"));
+      document.removeEventListener("pointermove", onDragMove);
+      document.removeEventListener("pointerup", onDragEnd);
+      document.removeEventListener("pointercancel", onDragCancel);
+      drag = null;
+    }
+
+    function commitDrop(id, fromLane, target) {
+      const prevSim = simulate(state.plan);
+
+      // Aus dem Ursprung entfernen
+      if (fromLane) {
+        const arr = state.plan[fromLane];
+        arr.splice(arr.indexOf(id), 1);
+      } else {
+        state.pool = state.pool.filter((x) => x !== id);
+      }
+
+      if (target.lane === "pool") {
+        // E verschwindet aus BEIDEN Touren
+        if (id === "E") {
+          state.plan.sprinter = state.plan.sprinter.filter((x) => x !== "E");
+          state.plan.caddy = state.plan.caddy.filter((x) => x !== "E");
+        }
+        if (!state.pool.includes(id)) state.pool.push(id);
+      } else {
+        state.plan[target.lane].splice(target.index, 0, id);
+        // Sonderfall E: erscheint automatisch auch in der anderen Lane
+        // (zunächst an letzter Position, frei verschiebbar)
+        if (id === "E") {
+          const other = target.lane === "sprinter" ? "caddy" : "sprinter";
+          if (!state.plan[other].includes("E")) state.plan[other].push("E");
+        }
+      }
+
+      const sim = renderAll();
+      commentOnDrop(id, target.lane, prevSim, sim);
+    }
+
+    // ================================================================
+    //  TOUR STARTEN / HINTS / ERFOLG
+    // ================================================================
+
+    function showHint(n) {
+      const host = $("hints");
+      const idx = n - 1;
+      if (host.querySelector(`[data-hint="${idx}"]`)) return;
+      const chip = document.createElement("div");
+      chip.className = "hint-chip";
+      chip.dataset.hint = idx;
+      chip.textContent = "💡 " + HINTS[idx];
+      host.appendChild(chip);
+    }
+
+    function updateAttemptsInfo() {
+      $("attempts-info").textContent =
+        state.attempts > 0 ? `Versuche: ${state.attempts}` : "";
+    }
+
+    function startTour() {
+      if (state.solved) { $("success").hidden = false; return; }
+      const sim = simulate(state.plan);
+
+      if (!sim.complete) {
+        say("Da sind noch Aufträge im Pool. Der Pool fährt nicht mit.", "bad");
+        return;
+      }
+
+      const errs = sim.conflicts.filter((c) => !c.info);
+      if (!errs.length) {
+        state.solved = true;
+        showSuccess(sim);
+        return;
+      }
+
+      state.attempts += 1;
+      updateAttemptsInfo();
+      const specific = state.wrongMoves >= 2 ? SPECIFIC[errs[0].code] : null;
+      const text = specific && specific !== lastComment ? specific : pick(POOL_WRONG, lastComment);
+      say(text, "bad");
+      renderConflicts(sim);
+
+      if (state.attempts >= 6) { showHint(1); showHint(2); }
+      else if (state.attempts >= 3) showHint(1);
+    }
+
+    function generateConfetti() {
+      const container = $("success-confetti");
+      container.innerHTML = "";
+      const colors = ["#0000f5", "#8080fa", "#78be73", "#f55f82", "#ffd54a", "#00c8e0"];
+      for (let i = 0; i < 70; i++) {
+        const piece = document.createElement("div");
+        piece.className = "confetti-piece";
+        piece.style.left = Math.random() * 100 + "%";
+        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+        piece.style.animationDuration = 2.5 + Math.random() * 2.5 + "s";
+        piece.style.animationDelay = Math.random() * 3 + "s";
+        container.appendChild(piece);
+      }
+    }
+
+    function showSuccess(sim) {
+      renderTimelineInto($("success-timeline"), sim);
+      $("success-farewell").innerHTML =
+        `Tour optimal geplant, alle Fenster getroffen, niemand musste übernachten.<br>`;
+      generateConfetti();
+      $("success").hidden = false;
+      // Gewonnen-Zustand auch auf der Seite selbst klar erkennbar machen
+      $("solved-banner").hidden = false;
+      $("btn-start").textContent = "🎉 Ergebnis ansehen";
+      say("Genehmigt. Einstimmig. Das gab es hier noch nie.", "good");
+      hideToast(); // das Overlay übernimmt die Bühne
+      document.querySelectorAll(".gremium .g-head").forEach((h) => h.classList.add("talking"));
+    }
+
+    function resetGame() {
+      state.pool = ALL_TASKS.slice();
+      state.plan = { sprinter: [], caddy: [] };
+      state.solved = false;
+      $("solved-banner").hidden = true;
+      $("btn-start").textContent = "🚦 Tour prüfen";
+      document.querySelectorAll(".gremium .g-head").forEach((h) => h.classList.remove("talking"));
+      renderAll();
+      say("Alles zurück auf Anfang. Die Fahrzeuge stehen wieder am Depot und tanken Kaffee.", "neutral");
+    }
+
+    // ================================================================
+    //  FAHRZEITEN-MATRIX
+    // ================================================================
+
+    function renderMatrix() {
+      // Depot (D) ist kein Auftrag — nur intern für die Simulation, nicht in der Referenz-Matrix.
+      const keys = Object.keys(GAME.travel).filter((k) => k !== "D");
+      let html = `<tr><th></th>${keys.map((k) => `<th>${abk(k)}</th>`).join("")}</tr>`;
+      for (const a of keys) {
+        html += `<tr><th>${abk(a)}</th>${keys
+          .map((b) => `<td>${a === b ? "–" : GAME.travel[a][b]}</td>`)
+          .join("")}</tr>`;
+      }
+      $("matrix-table").innerHTML = html;
+    }
+
+    // ================================================================
+    //  INIT
+    // ================================================================
+
+    function init() {
+      renderMatrix();
+      renderAll();
+      updateAttemptsInfo();
+      resetIdleTimer(); // Ungeduld-Uhr startet sofort
+      $("btn-start").addEventListener("click", startTour);
+      $("btn-reset").addEventListener("click", resetGame);
+      $("btn-close-success").addEventListener("click", () => { $("success").hidden = true; });
+      $("g-toast-close").addEventListener("click", hideToast);
+      // Sobald das Gremium-Panel selbst ins Bild scrollt, braucht es die Einblendung nicht mehr
+      window.addEventListener("scroll", () => {
+        if (!$("g-toast").hidden && gremiumPanelVisible()) hideToast();
+      }, { passive: true });
+
+      // "Zurück zur Tour." öffnet in Wahrheit die Bewerbung. Erst wenn der
+      // Nutzer zurückkommt, erscheint der ehrliche Link.
+      $("btn-back-tour").addEventListener("click", () => {
+        const reveal = () => {
+          $("btn-back-honest").hidden = false;
+          document.removeEventListener("visibilitychange", onVis);
+          window.removeEventListener("focus", reveal);
+        };
+        const onVis = () => { if (!document.hidden) reveal(); };
+        setTimeout(() => {
+          document.addEventListener("visibilitychange", onVis);
+          window.addEventListener("focus", reveal);
+          setTimeout(reveal, 8000); // Fallback, falls das PDF den Tab nicht verlässt
+        }, 400);
+      });
+    }
+
+    if (typeof document !== "undefined") {
+      document.addEventListener("DOMContentLoaded", init);
+    }
+
+    // Export für Tests (Node)
+    if (typeof module !== "undefined" && module.exports) {
+      module.exports = { GAME, simulate, ALL_TASKS };
+    }
+  </script>
+
+</body>
+</html>
