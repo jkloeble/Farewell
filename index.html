@@ -1652,10 +1652,27 @@
       renderMilestoneCard(idx);
     }
 
-    function initTourScreen() {
+    function initTourScreen(startIdx = 0) {
       renderRouteTrack();
-      navigateToStop(0);
+      navigateToStop(startIdx);
       setTimeout(initMapCanvas, 80);
+    }
+
+    // Deep-Link: erlaubt den Wiedereinstieg an einer bestimmten Station.
+    // Unterstützt "#tourenplanung" (die Minispiel-Station) und "#stop-<n>" (1-basiert).
+    function resolveStartStop() {
+      const hash = (location.hash || '').replace(/^#/, '');
+      if (!hash) return null;
+      if (hash === 'tourenplanung') {
+        const i = CONFIG.milestones.findIndex(m => m.title.startsWith('Tourenplanung'));
+        return i >= 0 ? i : null;
+      }
+      const m = hash.match(/^stop-(\d+)$/);
+      if (m) {
+        const idx = parseInt(m[1], 10) - 1;
+        if (idx >= 0 && idx < state.totalStops) return idx;
+      }
+      return null;
     }
 
     // ================================================================
@@ -1754,7 +1771,16 @@
       initIntroScreen();
       initRevealScreen();
       attachEventListeners();
-      runLoadingSequence();
+
+      // Kommt der Nutzer über einen Deep-Link zurück (z. B. aus dem Minispiel),
+      // direkt an die passende Station springen — ohne Ladesequenz/Intro.
+      const startStop = resolveStartStop();
+      if (startStop != null) {
+        initTourScreen(startStop);
+        showScreen('tour');
+      } else {
+        runLoadingSequence();
+      }
     }
 
     document.addEventListener('DOMContentLoaded', init);
