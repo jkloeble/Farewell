@@ -432,6 +432,14 @@
       margin-top: var(--space-sm);
       font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted);
     }
+    .controls__giveup {
+      display: inline-block; margin-top: var(--space-md);
+      background: none; border: none; cursor: pointer;
+      font-family: var(--font-mono); font-size: 12px;
+      color: var(--color-text-muted); text-decoration: underline dotted;
+      text-underline-offset: 3px; transition: var(--transition-fast);
+    }
+    .controls__giveup:hover { color: var(--color-accent-pink); }
 
     .solved-banner {
       display: inline-block;
@@ -908,6 +916,9 @@
         <button class="btn btn--secondary" id="btn-reset">↺ Zurücksetzen</button>
       </div>
       <div class="controls__attempts" id="attempts-info"></div>
+      <div>
+        <button type="button" class="controls__giveup" id="btn-giveup">🏳️ Das ist mir zu kompliziert</button>
+      </div>
     </div>
 
     <div class="hints" id="hints"></div>
@@ -925,14 +936,14 @@
   <div class="success" id="success" hidden>
     <div class="success__confetti" id="success-confetti" aria-hidden="true"></div>
     <div class="success__inner">
-      <div class="success__emoji" aria-hidden="true">🎉🚐🚗🎉</div>
-      <h2 class="success__heading">Tour genehmigt!</h2>
+      <div class="success__emoji" id="success-emoji" aria-hidden="true">🎉🚐🚗🎉</div>
+      <h2 class="success__heading" id="success-heading">Tour genehmigt!</h2>
       <div class="success__gremium-row" aria-hidden="true">
         <div class="g-head">🧐</div>
         <div class="g-head">🤨</div>
         <div class="g-head">😐</div>
       </div>
-      <p class="success__quote">Das Tourenplanergremium, einstimmig: „Genehmigt. Einstimmig. Das gab es hier noch nie."</p>
+      <p class="success__quote" id="success-quote">Das Tourenplanergremium, einstimmig: „Genehmigt. Einstimmig. Das gab es hier noch nie."</p>
       <div class="success__tl" id="success-timeline"></div>
       <p class="success__farewell" id="success-farewell"></p>
       <div class="btn-group">
@@ -1758,6 +1769,11 @@
     }
 
     function showSuccess(sim) {
+      $("success-emoji").textContent = "🎉🚐🚗🎉";
+      $("success-heading").textContent = "Tour genehmigt!";
+      $("success-quote").textContent =
+        'Das Tourenplanergremium, einstimmig: „Genehmigt. Einstimmig. Das gab es hier noch nie."';
+      $("success-timeline").hidden = false;
       renderTimelineInto($("success-timeline"), sim);
       $("success-farewell").innerHTML =
         `Tour optimal geplant, alle Fenster getroffen, niemand musste übernachten.<br>`;
@@ -1767,6 +1783,22 @@
       $("solved-banner").hidden = false;
       $("btn-start").textContent = "🎉 Ergebnis ansehen";
       say("Genehmigt. Einstimmig. Das gab es hier noch nie.", "good");
+      hideToast(); // das Overlay übernimmt die Bühne
+      document.querySelectorAll(".gremium .g-head").forEach((h) => h.classList.add("talking"));
+    }
+
+    // Aufgeben: nutzt dasselbe Overlay wie der Sieg — damit läuft der Ausstieg
+    // weiterhin zuerst über den Fake-Button "Zurück zur Abschiedstour".
+    function showGiveUp() {
+      $("success-emoji").textContent = "🏳️🚐🚗";
+      $("success-heading").textContent = "Zu kompliziert? Alles gut.";
+      $("success-quote").textContent =
+        'Das Tourenplanergremium, verständnisvoll: „Nicht jede Tour muss man selbst planen. Manche bewirbt man einfach."';
+      $("success-timeline").hidden = true;
+      $("success-timeline").innerHTML = "";
+      $("success-farewell").innerHTML =
+        `Kein Problem — der einfache Weg zurück ist gleich hier. 😉<br>`;
+      $("success").hidden = false;
       hideToast(); // das Overlay übernimmt die Bühne
       document.querySelectorAll(".gremium .g-head").forEach((h) => h.classList.add("talking"));
     }
@@ -1810,6 +1842,7 @@
       $("btn-start").addEventListener("click", startTour);
       $("btn-reset").addEventListener("click", resetGame);
       $("btn-close-success").addEventListener("click", () => { $("success").hidden = true; });
+      $("btn-giveup").addEventListener("click", showGiveUp);
       $("g-toast-close").addEventListener("click", hideToast);
       // Sobald das Gremium-Panel selbst ins Bild scrollt, braucht es die Einblendung nicht mehr
       window.addEventListener("scroll", () => {
