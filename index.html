@@ -1353,30 +1353,61 @@
       const W = canvas.width;
       const H = canvas.height;
 
-      // Hub: slightly left of center
-      const hub = { x: W * 0.32, y: H * 0.52 };
+      // Depot (start & end of the tour) plus one point per milestone, laid out
+      // around an irregular loop. Visiting them in order — and closing back to
+      // the depot — reads like a real round-trip tour (TSP-style), instead of
+      // straight spokes radiating from the origin.
+      const total = CONFIG.milestones.length;
+      const cx = W * 0.5, cy = H * 0.53;
+      const rx = W * 0.40, ry = H * 0.34;
 
-      // Milestone nodes — spread to the right like a dispatch map
-      const milestoneNodes = CONFIG.milestones.map((_, i) => {
-        const n    = CONFIG.milestones.length;
-        const frac = n > 1 ? i / (n - 1) : 0.5;
-        const angle = (-Math.PI * 0.45) + frac * (Math.PI * 0.9);
-        const dist  = 0.38 + (i % 2) * 0.10 + (i % 3) * 0.04;
+      // Deterministic jitter, so the layout stays stable across redraws/resizes.
+      const hash = (s) => { const x = Math.sin(s * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+      const clampX = (x) => Math.max(12, Math.min(W - 12, x));
+      const clampY = (y) => Math.max(12, Math.min(H - 12, y));
+
+      const pointCount = total + 1;                 // depot + milestones
+      const loop = Array.from({ length: pointCount }, (_, k) => {
+        const base   = Math.PI + (k / pointCount) * Math.PI * 2;   // start left, go clockwise
+        const angle  = base + (hash(k) - 0.5) * (Math.PI / pointCount); // < half-step ⇒ order preserved ⇒ no crossings
+        const radial = 0.80 + hash(k + 99) * 0.28;
         return {
-          x: Math.max(10, Math.min(W - 10, hub.x + Math.cos(angle) * W * dist)),
-          y: Math.max(10, Math.min(H - 10, hub.y + Math.sin(angle) * H * dist * 0.75)),
+          x: clampX(cx + Math.cos(angle) * rx * radial),
+          y: clampY(cy + Math.sin(angle) * ry * radial),
         };
       });
 
-      // Background scatter nodes
-      const bgNodes = Array.from({ length: 22 }, (_, i) => {
-        const angle = (i / 22) * Math.PI * 2;
-        const dist  = 0.12 + ((i * 37) % 19) / 19 * 0.42;
+      const depot          = loop[0];
+      const milestoneNodes = loop.slice(1);         // milestoneNodes[i] ↔ milestone i
+      // Tour in visiting order: depot → milestone 0 → … → milestone n-1 → depot.
+      const route = [depot, ...milestoneNodes];
+
+      // Background "other cities" — scattered dim dots for map texture.
+      const bgNodes = Array.from({ length: 26 }, (_, i) => {
+        const angle = (i / 26) * Math.PI * 2;
+        const dist  = 0.15 + ((i * 37) % 19) / 19 * 0.55;
         return {
-          x: Math.max(4, Math.min(W - 4, hub.x + Math.cos(angle) * W * dist)),
-          y: Math.max(4, Math.min(H - 4, hub.y + Math.sin(angle) * H * dist * 0.65)),
+          x: clampX(cx + Math.cos(angle) * rx * dist * 1.05),
+          y: clampY(cy + Math.sin(angle) * ry * dist * 1.15),
         };
       });
+
+      // Draws a single leg between two points (optionally dashed for "planned").
+      const drawLeg = (a, b, color, width, dashed) => {
+        ctx.save();
+        if (dashed) ctx.setLineDash([5, 6]);
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+        ctx.strokeStyle = color; ctx.lineWidth = width; ctx.stroke();
+        ctx.restore();
+      };
+
+      // Draws the moving "truck" dot travelling a → b.
+      const drawTraveler = (a, b) => {
+        const t    = (pulseT * 0.015) % 1;
+        ctx.beginPath();
+        ctx.arc(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,220,60,${0.7 + Math.sin(pulseT * 0.1) * 0.3})`; ctx.fill();
+      };
 
       let pulseT = 0;
 
@@ -1393,50 +1424,46 @@
         for (let x = 0; x < W; x += 44) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
         for (let y = 0; y < H; y += 44) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
 
-        // Background lines
-        bgNodes.forEach(n => {
-          ctx.beginPath(); ctx.moveTo(hub.x, hub.y); ctx.lineTo(n.x, n.y);
-          ctx.strokeStyle = 'rgba(0,200,224,0.13)'; ctx.lineWidth = 0.6; ctx.stroke();
-        });
+        const activeIdx  = canvasActiveIdx;
+        const isLastPage = activeIdx >= total - 1;
+        const pulseA     = 0.55 + Math.sin(pulseT * 0.05) * 0.3;
 
-        // Milestone lines
-        milestoneNodes.forEach((node, i) => {
-          if (i === canvasActiveIdx) return;
-          const visited = i < canvasActiveIdx;
-          ctx.beginPath(); ctx.moveTo(hub.x, hub.y); ctx.lineTo(node.x, node.y);
-          ctx.strokeStyle = visited ? 'rgba(120,190,115,0.55)' : 'rgba(0,200,224,0.28)';
-          ctx.lineWidth   = visited ? 1.5 : 0.8;
-          ctx.stroke();
-        });
+        const GREEN  = 'rgba(120,190,115,0.75)';
+        const YELLOW = `rgba(255,220,60,${pulseA})`;
 
-        // Active milestone line — yellow + traveling dot
-        const activeNode = milestoneNodes[canvasActiveIdx];
-        if (activeNode) {
-          const alpha = 0.55 + Math.sin(pulseT * 0.05) * 0.3;
-          ctx.beginPath(); ctx.moveTo(hub.x, hub.y); ctx.lineTo(activeNode.x, activeNode.y);
-          ctx.strokeStyle = `rgba(255,220,60,${alpha})`; ctx.lineWidth = 2; ctx.stroke();
-
-          const t    = (pulseT * 0.018) % 1;
-          const dotX = hub.x + (activeNode.x - hub.x) * t;
-          const dotY = hub.y + (activeNode.y - hub.y) * t;
-          ctx.beginPath(); ctx.arc(dotX, dotY, 3.5, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(255,220,60,${0.7 + Math.sin(pulseT * 0.1) * 0.3})`; ctx.fill();
+        // Route legs — progressive reveal: only the travelled path is drawn; upcoming
+        // legs stay hidden until you advance. Leg j connects route[j] → route[j+1]
+        // and arrives at milestone j.
+        for (let j = 0; j < total; j++) {
+          const a = route[j], b = route[j + 1];
+          if (j < activeIdx || isLastPage)  drawLeg(a, b, GREEN,  1.6, false); // travelled
+          else if (j === activeIdx)         drawLeg(a, b, YELLOW, 2.2, false); // current leg
+          // j > activeIdx: not yet revealed
         }
 
-        // Background endpoint dots
+        // Return leg (last milestone → depot) appears only on the final page,
+        // closing the loop back home.
+        const lastNode = route[total];
+        if (isLastPage) drawLeg(lastNode, depot, YELLOW, 2.2, false);
+
+        // Travelling dot on the current leg (or the return leg on the last page).
+        if (isLastPage) drawTraveler(lastNode, depot);
+        else            drawTraveler(route[activeIdx], route[activeIdx + 1]);
+
+        // Background city dots
         bgNodes.forEach(n => {
-          ctx.beginPath(); ctx.arc(n.x, n.y, 1.8, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(0,200,224,0.35)'; ctx.fill();
+          ctx.beginPath(); ctx.arc(n.x, n.y, 1.6, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(0,200,224,0.28)'; ctx.fill();
         });
 
-        // Milestone endpoint dots
+        // Milestone stop dots
         milestoneNodes.forEach((node, i) => {
-          const isActive  = i === canvasActiveIdx;
-          const isVisited = i < canvasActiveIdx;
-          const r = isActive ? 5 : 3;
+          const isActive  = i === activeIdx && !isLastPage;
+          const isVisited = i < activeIdx || isLastPage;
+          const r = isActive ? 5 : 3.2;
           const color = isActive
             ? `rgba(255,220,60,${0.85 + Math.sin(pulseT * 0.09) * 0.15})`
-            : isVisited ? 'rgba(120,190,115,0.8)' : 'rgba(0,200,224,0.45)';
+            : isVisited ? 'rgba(120,190,115,0.85)' : 'rgba(0,200,224,0.5)';
 
           if (isActive) {
             ctx.beginPath(); ctx.arc(node.x, node.y, r + 5 + Math.sin(pulseT * 0.07) * 2, 0, Math.PI * 2);
@@ -1446,13 +1473,13 @@
           ctx.fillStyle = color; ctx.fill();
         });
 
-        // Hub dot
-        ctx.beginPath(); ctx.arc(hub.x, hub.y, 6, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(0,200,224,0.9)'; ctx.fill();
-        ctx.beginPath(); ctx.arc(hub.x, hub.y, 11, 0, Math.PI * 2);
+        // Depot / home marker — glows brighter once the tour returns.
+        ctx.beginPath(); ctx.arc(depot.x, depot.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0,200,224,${isLastPage ? 0.95 : 0.7})`; ctx.fill();
+        ctx.beginPath(); ctx.arc(depot.x, depot.y, 11, 0, Math.PI * 2);
         ctx.strokeStyle = 'rgba(0,200,224,0.35)'; ctx.lineWidth = 1; ctx.stroke();
-        ctx.beginPath(); ctx.arc(hub.x, hub.y, 16 + Math.sin(pulseT * 0.06) * 2, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(0,200,224,0.12)'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.beginPath(); ctx.arc(depot.x, depot.y, 16 + Math.sin(pulseT * 0.06) * 2, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(0,200,224,${isLastPage ? 0.28 : 0.12})`; ctx.lineWidth = 1; ctx.stroke();
 
         pulseT++;
         canvasAnimFrame = requestAnimationFrame(draw);
