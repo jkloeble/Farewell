@@ -912,7 +912,7 @@
 
     <!-- Abschlussbild (letzte Station) -->
     <div id="abschluss-special" class="abschluss-special hidden">
-      <img id="abschluss-img" class="abschluss-image" src="data/abschluss_bild.png" alt="Abschlussbild">
+      <img id="abschluss-img" class="abschluss-image" src="data/abschluss_bild.jpg" alt="Abschlussbild">
     </div>
 
     <!-- Kulturnacht-Audio: spielt automatisch auf der Kulturnacht-Station -->
@@ -1626,7 +1626,7 @@
     // Auf der letzten Station zeigen wir statt des Text-Panels ein Bild.
     // Das echte Foto kommt direkt vom Handy, daher probieren wir mehrere
     // Dateiendungen durch (png -> jpg -> jpeg), falls es kein PNG ist.
-    const ABSCHLUSS_SRCS = ['data/abschluss_bild.png', 'data/abschluss_bild.jpg', 'data/abschluss_bild.jpeg'];
+    const ABSCHLUSS_SRCS = ['data/abschluss_bild.jpg', 'data/abschluss_bild.jpg', 'data/abschluss_bild.jpeg'];
 
     function toggleAbschlussSpecial(idx) {
       const el   = $('abschluss-special');
