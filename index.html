@@ -727,6 +727,29 @@
       color: var(--color-text-primary); margin-top: var(--space-md);
     }
 
+    /* ============================================================
+       ABSCHLUSSBILD (LETZTE STATION)
+    ============================================================ */
+    .abschluss-special {
+      width: 100%; margin-bottom: var(--space-lg);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .abschluss-special.hidden { display: none; }
+    /* Auf der letzten Station zeigen wir statt des Text-Panels das Bild. */
+    #milestone-card.hidden { display: none; }
+
+    .abschluss-image {
+      display: block; max-width: 100%; max-height: 70vh; width: auto; height: auto;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-border);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+      animation: abschluss-fade-in 0.8s ease both;
+    }
+    @keyframes abschluss-fade-in {
+      from { opacity: 0; transform: scale(0.97); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
     @media (max-width: 600px) {
       .intro__stats { gap: var(--space-sm); }
       .stat-card { min-width: 100px; padding: var(--space-md); }
@@ -885,6 +908,11 @@
       <div class="score-value" id="score-value">0</div>
       <div class="score-substats">Kaffee: ∞ &nbsp;·&nbsp; RAM: alles &nbsp;·&nbsp; Tokens: Gerne</div>
       <div class="score-caption">🎊 Der Rest ist Legende 🎊</div>
+    </div>
+
+    <!-- Abschlussbild (letzte Station) -->
+    <div id="abschluss-special" class="abschluss-special hidden">
+      <img id="abschluss-img" class="abschluss-image" src="data/abschluss_bild.png" alt="Abschlussbild">
     </div>
 
     <!-- Navigation -->
@@ -1165,6 +1193,16 @@
             { text: "Projekt ABM", style: "primary" },
           ],
           funFact: "Zitat: Das ist das erste Mal seit Beginn des ABM-Projekts, dass ich nicht weiß, was ich tun kann."
+        },
+        {
+          year: "2026-06-07",
+          title: "Das Ende ist da ",
+          icon: "",
+          description:
+            "",
+          tags: [
+          ],
+          funFact: "."
         }
       ]
 
@@ -1553,6 +1591,39 @@
     }
 
     // ================================================================
+    //  ABSCHLUSSBILD (LETZTE STATION)
+    // ================================================================
+    // Auf der letzten Station zeigen wir statt des Text-Panels ein Bild.
+    // Das echte Foto kommt direkt vom Handy, daher probieren wir mehrere
+    // Dateiendungen durch (png -> jpg -> jpeg), falls es kein PNG ist.
+    const ABSCHLUSS_SRCS = ['data/abschluss_bild.png', 'data/abschluss_bild.jpg', 'data/abschluss_bild.jpeg'];
+
+    function toggleAbschlussSpecial(idx) {
+      const el   = $('abschluss-special');
+      const card = $('milestone-card');
+      const isLast = idx === state.totalStops - 1;
+      if (isLast) {
+        const img = $('abschluss-img');
+        if (img && !img.dataset.fallbackWired) {
+          img.dataset.fallbackWired = '1';
+          img.dataset.srcIdx = '0';
+          img.addEventListener('error', () => {
+            const next = parseInt(img.dataset.srcIdx, 10) + 1;
+            if (next < ABSCHLUSS_SRCS.length) {
+              img.dataset.srcIdx = String(next);
+              img.src = ABSCHLUSS_SRCS[next];
+            }
+          });
+        }
+        el.classList.remove('hidden');
+        card.classList.add('hidden');
+      } else {
+        el.classList.add('hidden');
+        card.classList.remove('hidden');
+      }
+    }
+
+    // ================================================================
     //  MILESTONE CARD (DATA PANEL)
     // ================================================================
 
@@ -1634,6 +1705,7 @@
       toggleMilestoneSpecial(idx);
       toggleQuizSpecial(idx);
       toggleScoreSpecial(idx);
+      toggleAbschlussSpecial(idx);
     }
 
     // ================================================================
