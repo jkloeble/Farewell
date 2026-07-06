@@ -732,11 +732,20 @@
     ============================================================ */
     .abschluss-special {
       width: 100%; margin-bottom: var(--space-lg);
-      display: flex; align-items: center; justify-content: center;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: var(--space-md);
     }
     .abschluss-special.hidden { display: none; }
     /* Auf der letzten Station zeigen wir statt des Text-Panels das Bild. */
     #milestone-card.hidden { display: none; }
+
+    .abschluss-title {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: clamp(20px, 3vw, 30px);
+      font-weight: 600; letter-spacing: -0.01em;
+      color: var(--color-text-primary); text-align: center;
+    }
 
     .abschluss-image {
       display: block; max-width: 100%; max-height: 70vh; width: auto; height: auto;
@@ -912,6 +921,7 @@
 
     <!-- Abschlussbild (letzte Station) -->
     <div id="abschluss-special" class="abschluss-special hidden">
+      <h3 class="abschluss-title">🧹 Zum Abschluss noch einmal Saubermachen</h3>
       <img id="abschluss-img" class="abschluss-image" src="data/abschluss_bild.jpg" alt="Abschlussbild">
     </div>
 
