@@ -915,6 +915,9 @@
       <img id="abschluss-img" class="abschluss-image" src="data/abschluss_bild.png" alt="Abschlussbild">
     </div>
 
+    <!-- Kulturnacht-Audio: spielt automatisch auf der Kulturnacht-Station -->
+    <audio id="kulturnacht-audio" src="data/kulturnacht.mp3" preload="auto"></audio>
+
     <!-- Navigation -->
     <div class="btn-group">
       <button class="btn btn--secondary" id="btn-prev" aria-label="Vorherige Station">← Zurück</button>
@@ -1624,6 +1627,27 @@
     }
 
     // ================================================================
+    //  KULTURNACHT-AUDIO
+    // ================================================================
+    // Auf der Kulturnacht-Station spielt automatisch ein MP3 ab. Beim
+    // Verlassen der Station wird es gestoppt und zurückgespult.
+
+    function toggleKulturnachtAudio(idx) {
+      const audio = $('kulturnacht-audio');
+      if (!audio) return;
+      const isKulturnacht = CONFIG.milestones[idx].title === 'Kulturnacht';
+      if (isKulturnacht) {
+        audio.currentTime = 0;
+        // play() kann von Autoplay-Policies abgelehnt werden – still ignorieren.
+        const p = audio.play();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      } else {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    }
+
+    // ================================================================
     //  MILESTONE CARD (DATA PANEL)
     // ================================================================
 
@@ -1706,6 +1730,7 @@
       toggleQuizSpecial(idx);
       toggleScoreSpecial(idx);
       toggleAbschlussSpecial(idx);
+      toggleKulturnachtAudio(idx);
     }
 
     // ================================================================
